@@ -14,7 +14,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     // Fetch user info from backend
-    fetch('http://localhost:8000/user')
+    fetch('http://localhost:8100/user')
       .then(res => res.json())
       .then(data => setUserInfo(data))
       .catch(err => {
@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://localhost:8000/logout');
+      const response = await fetch('http://localhost:8100/logout');
       const data = await response.json();
       if (data.redirect) {
         window.location.href = data.redirect;

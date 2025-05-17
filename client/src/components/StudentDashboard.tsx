@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Progress } from "../components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Progress } from "./ui/progress";
 import { DashboardLayout } from './DashboardLayout';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { CourseRecommendations } from "./CourseRecommendations";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { BookOpen, Calendar, GraduationCap, Library, Settings, User } from "lucide-react";
+import { SidebarTrigger } from "./ui/sidebar-trigger";
 
 interface Course {
   id: number;
@@ -49,13 +53,50 @@ const currentCourses: Course[] = [
   },
 ];
 
+// Placeholder components for different sections
+const Courses = () => (
+  <div className="p-6">
+    <h2 className="text-2xl font-bold mb-4">My Courses</h2>
+    <p>Course management and enrollment will be implemented here.</p>
+  </div>
+);
+
+const Schedule = () => (
+  <div className="p-6">
+    <h2 className="text-2xl font-bold mb-4">Class Schedule</h2>
+    <p>Class schedule and timetable will be implemented here.</p>
+  </div>
+);
+
+const Assignments = () => (
+  <div className="p-6">
+    <h2 className="text-2xl font-bold mb-4">Assignments</h2>
+    <p>Assignment tracking and submission will be implemented here.</p>
+  </div>
+);
+
+const Grades = () => (
+  <div className="p-6">
+    <h2 className="text-2xl font-bold mb-4">Grades</h2>
+    <p>Grade tracking and academic performance will be implemented here.</p>
+  </div>
+);
+
+const Profile = () => (
+  <div className="p-6">
+    <h2 className="text-2xl font-bold mb-4">Profile</h2>
+    <p>Student profile and settings will be implemented here.</p>
+  </div>
+);
+
 const StudentDashboard: React.FC = () => {
   const [userInfo, setUserInfo] = useState<any>(null);
+  const [activeSection, setActiveSection] = useState("courses");
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('http://localhost:8000/user', {
+        const response = await fetch('http://localhost:8100/user', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -69,9 +110,9 @@ const StudentDashboard: React.FC = () => {
         
         const userData = await response.json();
         if (userData.role !== 'Student') {
-            if (userData.role == 'Faculty') {
-                window.location.href = '/faculty-dashboard';                
-            }
+          if (userData.role === 'Faculty') {
+            window.location.href = '/faculty-dashboard';
+          }
           window.location.href = '/';
         }
         setUserInfo(userData);
@@ -85,143 +126,100 @@ const StudentDashboard: React.FC = () => {
   }, []);
 
   if (!userInfo) {
-    return (
-      <DashboardLayout>
-        <div className="p-6">Loading...</div>
-      </DashboardLayout>
-    );
+    return <div className="p-6">Loading...</div>;
   }
 
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case "courses":
+        return <Courses />;
+      case "schedule":
+        return <Schedule />;
+      case "assignments":
+        return <Assignments />;
+      case "grades":
+        return <Grades />;
+      case "profile":
+        return <Profile />;
+      default:
+        return <Courses />;
+    }
+  };
+
   return (
-    <DashboardLayout>
-      <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Student Dashboard</h1>
-        
-        <Tabs defaultValue="overview" className="mb-8">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="courses">My Courses</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Performance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={performanceData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip />
-                        <Line
-                          type="monotone"
-                          dataKey="score"
-                          stroke="#3b82f6"
-                          strokeWidth={2}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Subject Progress</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={subjectData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip />
-                        <Bar dataKey="completed" fill="#10b981" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+    <div className="min-h-screen flex w-full">
+      <aside className="w-64 border-r border-border bg-background">
+        <nav className="p-4 space-y-2">
+          <button
+            onClick={() => setActiveSection("courses")}
+            className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
+              activeSection === "courses"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
+            }`}
+          >
+            <BookOpen className="h-5 w-5" />
+            <span>Courses</span>
+          </button>
+          <button
+            onClick={() => setActiveSection("schedule")}
+            className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
+              activeSection === "schedule"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
+            }`}
+          >
+            <Calendar className="h-5 w-5" />
+            <span>Schedule</span>
+          </button>
+          <button
+            onClick={() => setActiveSection("assignments")}
+            className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
+              activeSection === "assignments"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
+            }`}
+          >
+            <Library className="h-5 w-5" />
+            <span>Assignments</span>
+          </button>
+          <button
+            onClick={() => setActiveSection("grades")}
+            className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
+              activeSection === "grades"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
+            }`}
+          >
+            <GraduationCap className="h-5 w-5" />
+            <span>Grades</span>
+          </button>
+          <button
+            onClick={() => setActiveSection("profile")}
+            className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
+              activeSection === "profile"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
+            }`}
+          >
+            <User className="h-5 w-5" />
+            <span>Profile</span>
+          </button>
+        </nav>
+      </aside>
+
+      <main className="flex-1 overflow-auto">
+        <div className="flex h-16 items-center gap-4 border-b border-border bg-background px-6">
+          <SidebarTrigger className="md:hidden" />
+          <div className="ml-auto flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
+              {userInfo.name?.charAt(0) || 'S'}
             </div>
-            
-            <div className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Course Recommendations</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CourseRecommendations />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="courses">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {currentCourses.map((course) => (
-                <Card key={course.id}>
-                  <CardHeader>
-                    <CardTitle>{course.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-2">
-                      <div className="text-sm text-gray-500">Progress</div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div
-                          className="bg-blue-600 h-2.5 rounded-full"
-                          style={{ width: `${course.progress}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-right text-sm text-gray-500">
-                        {course.progress}%
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Next lesson</div>
-                      <div className="font-medium">{course.nextLesson}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="performance">
-            <div className="grid grid-cols-1 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Detailed Performance Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={performanceData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip />
-                        <Line
-                          type="monotone"
-                          dataKey="score"
-                          stroke="#8b5cf6"
-                          strokeWidth={2}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </DashboardLayout>
+          </div>
+        </div>
+        <div className="container py-6">{renderActiveSection()}</div>
+      </main>
+    </div>
   );
 };
 

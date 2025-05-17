@@ -97,6 +97,8 @@ async def auth(request: Request):
             redirect_url = 'http://localhost:5173/student-dashboard'
         elif role_name == 'Faculty':
             redirect_url = 'http://localhost:5173/faculty-dashboard'
+        elif role_name == 'Admin':
+            redirect_url = 'http://localhost:5173/admin-dashboard'
         else:
             redirect_url = 'http://localhost:5173?error=Unknown role'
         

@@ -4,7 +4,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 
 const Login: React.FC = () => {
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8000/login';
+    window.location.href = 'http://localhost:8100/login';
   };
 
   return (

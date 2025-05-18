@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle  } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
-import { DashboardLayout } from "./DashboardLayout";
-import { SidebarTrigger } from "./ui/sidebar-trigger";
 import { Button } from "./ui/button";
-import { Cctv, AlertTriangle } from "lucide-react";
+import { Cctv, AlertTriangle, Eye, UserCheck, Car, Search, Users, Shield, Menu, X, Clock, MapPin } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { VehicleAccess } from "./VehicleAccess";
 import { VisitorPreAuth } from "./VisitorPreAuth";
@@ -119,24 +116,24 @@ const alertsData = [
 function getSeverityColor(severity: string) {
   switch (severity) {
     case "high":
-      return "bg-security-red";
+      return "bg-red-500";
     case "medium":
-      return "bg-security-yellow";
+      return "bg-yellow-500";
     default:
-      return "bg-security-blue";
+      return "bg-blue-500";
   }
 }
 
 function getStatusClass(status: string) {
   switch (status) {
     case "new":
-      return "border-security-red text-security-red";
+      return "border-red-500 text-red-500";
     case "investigating":
-      return "border-security-yellow text-security-yellow";
+      return "border-yellow-500 text-yellow-500";
     case "acknowledged":
-      return "border-security-blue text-security-blue";
+      return "border-blue-500 text-blue-500";
     default:
-      return "border-security-green text-security-green";
+      return "border-green-500 text-green-500";
   }
 }
 
@@ -144,132 +141,17 @@ function formatStatus(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function AlertsPanel() {
-  const [selectedAlert, setSelectedAlert] = useState<number | null>(null);
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Security Alerts</h1>
-        <p className="text-muted-foreground">
-          {alertsData.filter(a => a.status === "new").length} new alerts requiring attention
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          {alertsData.map((alert) => (
-            <div
-              key={alert.id}
-              className={`alert-item cursor-pointer ${selectedAlert === alert.id ? 'border-security-yellow' : ''}`}
-              onClick={() => setSelectedAlert(alert.id)}
-            >
-              <div className={`p-2 rounded-md ${getSeverityColor(alert.severity)}`}>
-                <AlertTriangle className="h-5 w-5 text-background" />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">{alert.type}</h3>
-                    <p className="text-sm text-muted-foreground">{alert.location}</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={getStatusClass(alert.status)}
-                  >
-                    {formatStatus(alert.status)}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs text-muted-foreground">{alert.timestamp}</span>
-                  <Button variant="ghost" size="sm">
-                    View Camera
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="lg:col-span-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Alert Details</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {selectedAlert ? (
-                <>
-                  <div className="aspect-video bg-card rounded-md flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <AlertTriangle className="h-8 w-8" />
-                      <span>Alert Footage</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button>Dispatch Team</Button>
-                    <Button variant="outline">Mark Resolved</Button>
-                  </div>
-                  
-                  <div className="border-t border-border pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status</span>
-                      <Badge variant="outline" className="capitalize">
-                        {selectedAlert === 1 ? "New" : "Investigating"}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Time</span>
-                      <span>{selectedAlert === 1 ? "2 mins ago" : "15 mins ago"}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Location</span>
-                      <span>{selectedAlert === 1 ? "Restricted Area" : "Main Entrance"}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Camera ID</span>
-                      <span>#{selectedAlert === 1 ? "3" : "1"}</span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <AlertTriangle className="h-16 w-16 opacity-20" />
-                  <p>Select an alert to view details</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function CameraFeed({ camera }: { camera: any }) {
   return (
-    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden shadow-md">
-      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-        <Cctv className="h-12 w-12" />
+    <div className="overflow-hidden bg-gray-900 rounded-lg relative h-full flex flex-col">
+      <div className="absolute top-2 left-2 z-10">
+        <Badge className="bg-red-500 text-white text-xs">LIVE</Badge>
       </div>
-
-      <div className="absolute inset-0 p-2 flex flex-col justify-between bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-xs text-white font-medium">LIVE</span>
-          </div>
-          <Button variant="outline" size="icon" className="h-6 w-6 text-white border-white/50">
-            ⋯
-          </Button>
-        </div>
-        <div>
-          <p className="text-white font-semibold text-sm">{camera.name}</p>
-          <p className="text-gray-300 text-xs">{camera.location}</p>
-        </div>
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-gray-500 text-base sm:text-lg font-bold">NO SIGNAL</p>
+      </div>
+      <div className="absolute bottom-0 w-full p-2 bg-gradient-to-t from-gray-900 to-transparent">
+        <h3 className="text-sm sm:text-base font-medium text-white truncate">{camera.name}</h3>
       </div>
     </div>
   );
@@ -277,238 +159,362 @@ function CameraFeed({ camera }: { camera: any }) {
 
 function FeaturedCamera({ camera }: { camera: any }) {
   return (
-    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden shadow-lg">
-      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-        <Cctv className="h-16 w-16" />
+    <div className="overflow-hidden bg-gray-900 rounded-lg relative h-full flex flex-col">
+      <div className="absolute top-2 left-2 z-10">
+        <Badge className="bg-red-500 text-white text-xs">LIVE</Badge>
+      </div>
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-gray-500 text-lg sm:text-xl md:text-2xl font-bold">NO SIGNAL</p>
+      </div>
+      <div className="absolute bottom-0 w-full p-3 bg-gradient-to-t from-gray-900 to-transparent">
+        <h3 className="text-base sm:text-lg font-medium text-white truncate">{camera.name}</h3>
+        <p className="text-xs sm:text-sm text-gray-400 truncate">{camera.location}</p>
+      </div>
+    </div>
+  );
+}
+
+function AlertsPanel() {
+  const [selectedAlert, setSelectedAlert] = useState<number | null>(null);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold tracking-tight">Security Alerts</h1>
+        <p className="text-muted-foreground font-semibold text-gray-600">
+          {alertsData.filter(a => a.status === "new").length} new alerts requiring attention
+        </p>
       </div>
 
-      <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-xs text-white font-medium">LIVE</span>
-          </div>
-          <Button variant="outline" size="icon" className="h-6 w-6 text-white border-white/50">
-            ⋯
-          </Button>
-        </div>
-
-        <div className="flex justify-between items-end">
-          <div>
-            <p className="text-white font-semibold">{camera.name}</p>
-            <p className="text-gray-300 text-xs">{camera.location}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm">Zoom</Button>
-            <Button variant="default" size="sm">Full Screen</Button>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+        <Card className="bg-gray-900 text-white overflow-hidden flex flex-col">
+          <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <CardTitle>Recent Alerts</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-auto flex-1">
+            <div className="space-y-1">
+              {alertsData.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`flex items-start p-4 border-l-4 cursor-pointer ${
+                    selectedAlert === alert.id 
+                      ? 'border-yellow-500 bg-gray-800' 
+                      : 'border-transparent hover:bg-gray-800'
+                  }`}
+                  onClick={() => setSelectedAlert(alert.id)}
+                >
+                  <div className={`p-2 rounded-md mr-3 ${getSeverityColor(alert.severity)}`}>
+                    <AlertTriangle className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-white">{alert.type}</h3>
+                        <p className="text-sm text-gray-200">{alert.location}</p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={getStatusClass(alert.status)}
+                      >
+                        {formatStatus(alert.status)}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs text-gray-300 flex items-center">
+                        <Clock className="h-3.5 w-3.5 mr-1" />
+                        {alert.timestamp}
+                      </span>
+                      <Button 
+                        size="sm" 
+                        className="h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
+                      >
+                        View Camera
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gray-900 text-white overflow-hidden flex flex-col">
+          <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <CardTitle>Alert Details</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-auto">
+            {selectedAlert ? (
+              <div className="space-y-6">
+                <div className="p-4 bg-gray-800 rounded-md">
+                  <h3 className="text-lg font-medium text-white mb-1">
+                    {alertsData.find(a => a.id === selectedAlert)?.type}
+                  </h3>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                    <p className="text-sm text-gray-300">
+                      {alertsData.find(a => a.id === selectedAlert)?.location}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gray-800 rounded-md p-3">
+                    <p className="text-sm text-gray-400 mb-1">Status</p>
+                    <Badge
+                      variant="outline"
+                      className={getStatusClass(
+                        alertsData.find(a => a.id === selectedAlert)?.status || ""
+                      )}
+                    >
+                      {formatStatus(
+                        alertsData.find(a => a.id === selectedAlert)?.status || ""
+                      )}
+                    </Badge>
+                  </div>
+                  <div className="bg-gray-800 rounded-md p-3">
+                    <p className="text-sm text-gray-400 mb-1">Time</p>
+                    <p className="text-sm font-medium">
+                      {alertsData.find(a => a.id === selectedAlert)?.timestamp}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-gray-800 rounded-md">
+                  <p className="text-sm text-gray-400 mb-1">Camera</p>
+                  <div className="flex justify-between items-center">
+                    <p className="font-medium">
+                      {
+                        camerasData.find(
+                          c => c.id === alertsData.find(a => a.id === selectedAlert)?.cameraId
+                        )?.name
+                      }
+                    </p>
+                    <Badge variant="outline" className="bg-red-500 text-white border-red-500 text-xs">LIVE</Badge>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-900 aspect-video rounded-md flex items-center justify-center border border-gray-800">
+                  <p className="text-gray-500 text-lg font-bold">NO SIGNAL</p>
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white">
+                    <Eye className="h-4 w-4 mr-2" /> Investigate
+                  </Button>
+                  <Button variant="outline" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800">
+                    <X className="h-4 w-4 mr-2" /> Dismiss
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center p-6">
+                <AlertTriangle className="h-16 w-16 text-gray-700 mb-4" />
+                <p className="text-gray-400">Select an alert to view details</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
 
 function CctvMonitoring() {
-  const [view, setView] = useState("grid");
-
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">CCTV Monitoring</h1>
-          <p className="text-muted-foreground">
-            Live feed from {camerasData.length} cameras across campus
-          </p>
+          <p className="text-muted-foreground">Live feed from {camerasData.length} cameras across campus</p>
         </div>
-        <Tabs defaultValue="grid" value={view} onValueChange={setView}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8">Export</Button>
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8">Settings</Button>
+          <Button size="sm" className="text-xs sm:text-sm h-8">Take Action</Button>
+        </div>
+      </div>
+
+      <Tabs defaultValue="grid" className="flex flex-col flex-1">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 justify-between items-start sm:items-center mb-3">
           <TabsList>
             <TabsTrigger value="grid">Grid</TabsTrigger>
             <TabsTrigger value="featured">Featured</TabsTrigger>
           </TabsList>
-        </Tabs>
-      </div>
-
-      <Tabs value={view}>
-        <TabsContent value="grid">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {camerasData.map((camera) => (
-              <CameraFeed key={camera.id} camera={camera} />
-            ))}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8">Filter</Button>
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8">Sort</Button>
           </div>
-        </TabsContent>
-
-        <TabsContent value="featured">
-          <div className="flex flex-col gap-4">
-            <FeaturedCamera camera={camerasData[0]} />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {camerasData.slice(1, 4).map((camera) => (
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <TabsContent value="grid" className="h-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 h-full">
+              {camerasData.map(camera => (
                 <CameraFeed key={camera.id} camera={camera} />
               ))}
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
+          <TabsContent value="featured" className="h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 h-full">
+              <div className="md:col-span-2 md:row-span-2 h-full">
+                <FeaturedCamera camera={camerasData[0]} />
+              </div>
+              <CameraFeed camera={camerasData[1]} />
+              <CameraFeed camera={camerasData[2]} />
+              <CameraFeed camera={camerasData[3]} />
+              <CameraFeed camera={camerasData[4]} />
+              <CameraFeed camera={camerasData[5]} />
+              <CameraFeed camera={camerasData[6]} />
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
 }
 
-// Placeholder components for other sections
 const SearchLogs = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold mb-4">Search Logs</h2>
-    <p>System logs and search functionality will be implemented here.</p>
+  <div>
+    <h1 className="text-2xl font-bold tracking-tight mb-6">Search Logs</h1>
+    <p className="text-muted-foreground">This section is under development.</p>
   </div>
 );
 
 const PersonnelSection = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold mb-4">Personnel Management</h2>
-    <p>Personnel access and management will be implemented here.</p>
+  <div>
+    <h1 className="text-2xl font-bold tracking-tight mb-6">Personnel Management</h1>
+    <p className="text-muted-foreground">This section is under development.</p>
   </div>
 );
 
 const AdminDashboard = () => {
-  const [userInfo, setUserInfo] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState("cctv");
+  const [activeSection, setActiveSection] = useState('cctv');
+  const [user, setUser] = useState<any>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('http://localhost:8100/user', {
+        const response = await fetch('http://localhost:8000/user', {
           credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
         });
         
         if (!response.ok) {
-          throw new Error('Failed to fetch user');
+          throw new Error('Authentication failed');
         }
         
         const userData = await response.json();
-        if (userData.role !== 'Admin') {
-          window.location.href = '/';
-        }
-        setUserInfo(userData);
+        setUser(userData);
       } catch (error) {
-        console.error('Error fetching user:', error);
-        window.location.href = '/';
+        console.error('Error fetching user data:', error);
+      }
+    };
+    
+    fetchUser();
+
+    // Add event listener to handle responsive sidebar
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
       }
     };
 
-    fetchUser();
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (!userInfo) {
-    return (
-      <DashboardLayout>
-        <div className="p-6">Loading...</div>
-      </DashboardLayout>
-    );
-  }
+  const navItems = [
+    { id: 'cctv', label: 'CCTV Monitoring', icon: Cctv },
+    { id: 'alerts', label: 'Alerts Panel', icon: AlertTriangle },
+    { id: 'vehicle', label: 'Vehicle Access', icon: Car },
+    { id: 'visitors', label: 'Visitor Pre-Auth', icon: UserCheck },
+    { id: 'logs', label: 'Search Logs', icon: Search },
+    { id: 'personnel', label: 'Personnel', icon: Users },
+  ];
 
   const renderActiveSection = () => {
     switch (activeSection) {
-      case "cctv":
+      case 'cctv':
         return <CctvMonitoring />;
-      case "alerts":
+      case 'alerts':
         return <AlertsPanel />;
-      case "vehicle":
+      case 'vehicle':
         return <VehicleAccess />;
-      case "preauth":
+      case 'visitors':
         return <VisitorPreAuth />;
-      case "search":
+      case 'logs':
         return <SearchLogs />;
-      case "personnel":
+      case 'personnel':
         return <PersonnelSection />;
       default:
         return <CctvMonitoring />;
     }
   };
 
-  return (
-    // <DashboardLayout>
-      <div className="min-h-screen flex w-full">
-        <aside className="w-64 border-r border-border bg-background">
-          <nav className="p-4 space-y-2">
-            <button
-              onClick={() => setActiveSection("cctv")}
-              className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
-                activeSection === "cctv"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent"
-              }`}
-            >
-              <Cctv className="h-5 w-5" />
-              <span>CCTV Monitoring</span>
-            </button>
-            <button
-              onClick={() => setActiveSection("alerts")}
-              className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
-                activeSection === "alerts"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent"
-              }`}
-            >
-              <span>Alerts Panel</span>
-            </button>
-            <button
-              onClick={() => setActiveSection("vehicle")}
-              className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
-                activeSection === "vehicle"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent"
-              }`}
-            >
-              <span>Vehicle Access</span>
-            </button>
-            <button
-              onClick={() => setActiveSection("preauth")}
-              className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
-                activeSection === "preauth"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent"
-              }`}
-            >
-              <span>Visitor Pre-Auth</span>
-            </button>
-            <button
-              onClick={() => setActiveSection("search")}
-              className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
-                activeSection === "search"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent"
-              }`}
-            >
-              <span>Search Logs</span>
-            </button>
-            <button
-              onClick={() => setActiveSection("personnel")}
-              className={`w-full flex items-center gap-2 px-4 py-2 rounded-md ${
-                activeSection === "personnel"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent"
-              }`}
-            >
-              <span>Personnel</span>
-            </button>
-          </nav>
-        </aside>
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
-        <main className="flex-1 overflow-auto">
-          <div className="flex h-16 items-center gap-4 border-b border-border bg-background px-6">
-            <SidebarTrigger className="md:hidden" />
-            <div className="ml-auto flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
-                AD
-              </div>
+  return (
+    <div className="flex flex-col min-h-screen h-screen w-full bg-gray-50 overflow-hidden">
+      {/* Top header bar for mobile - only shown on small screens */}
+      <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold">Campus Security</h2>
+        <button onClick={toggleSidebar} className="p-1">
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden w-full h-full">
+        {/* Left sidebar for Campus Security navigation - responsive */}
+        <div className={`${isSidebarOpen ? 'block' : 'hidden'} md:block bg-gray-900 text-white border-r flex-shrink-0 ${
+          isSidebarOpen ? 'w-full md:w-64' : 'w-0'
+        } transition-all duration-300 fixed md:static md:h-full z-20 h-[calc(100%-4rem)]`}>
+          <div className="hidden md:block p-4 border-b border-gray-800">
+            <h2 className="text-xl font-bold">Campus Security</h2>
+          </div>
+          <nav className="mt-4 overflow-y-auto h-[calc(100%-8rem)]">
+            <ul className="space-y-1">
+              {navItems.map((item) => (
+                <li key={item.id}>
+                  <button
+                    onClick={() => {
+                      setActiveSection(item.id);
+                      if (window.innerWidth < 768) {
+                        setIsSidebarOpen(false);
+                      }
+                    }}
+                    className={`w-full flex items-center px-4 py-3 text-left ${
+                      activeSection === item.id 
+                        ? 'bg-gray-800 text-white' 
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5 mr-3" />
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="hidden md:block absolute bottom-0 w-64 border-t border-gray-800 p-4">
+            <div className="flex items-center">
+              <Shield className="h-6 w-6 mr-3" />
+              <span className="font-semibold">Admin</span>
             </div>
           </div>
-          <div className="container py-6">{renderActiveSection()}</div>
-        </main>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 overflow-auto w-full h-full p-2 md:p-4">
+          {renderActiveSection()}
+        </div>
       </div>
-    // </DashboardLayout>
+    </div>
   );
 };
 

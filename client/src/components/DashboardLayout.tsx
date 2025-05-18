@@ -50,10 +50,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       visible: userRole === 'Faculty'
     },
     {
-      href: "/surveilance",
+      href: "/admin-dashboard",
       icon: Cctv,
-      label: "Surveilance",
-      isActive: location.pathname === "/surveilance",
+      label: "Campus Security",
+      isActive: location.pathname === "/admin-dashboard",
       visible: userRole === "Admin"
     },
     {

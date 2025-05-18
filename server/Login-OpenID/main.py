@@ -28,9 +28,10 @@ app.add_middleware(
     secret_key=os.getenv("SECRET_KEY", "JrFglAnbqZxzSVQ1bar2ZtXbMG8cRvgoi4JWBjXN7dQ"),
     session_cookie="session",
     max_age=3600,  # 1 hour
-    same_site="none",  # Changed to none for cross-origin
+    same_site="lax",  # Changed to none for cross-origin
     https_only=False,  # Set to True in production
-    path="/"  # Ensure cookie is available for all paths
+    path="/",  # Ensure cookie is available for all paths
+    # domain=None
 )
 
 # OAuth2 setup
@@ -55,14 +56,18 @@ async def root():
 @app.get("/login")
 async def login(request: Request):
     redirect_uri = request.url_for('auth')
+    print("Session before login:", request.session)  # Add this
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/callback")
 async def auth(request: Request):
+    # print("Callback request:", request.url)
+    print("Session in callback:", request.session)  # Add this
+
     try:
         # Step 1: Get token from Google
         token = await oauth.google.authorize_access_token(request)
-        print(token)
+        # print(token)
 
         # Step 2: Get user info from token
         userinfo = await oauth.google.userinfo(token=token)
@@ -74,11 +79,31 @@ async def auth(request: Request):
         # Step 3: Check if user exists
         print("Google email:", email)
         user = get_user_by_email(email)
+        if not user and email.endswith('@cse.mrt.ac.lk'):
+            # Extract name from email (part before the first dot)
+            name = email.split('@')[0].split('.')[0].capitalize()       
+                 
+            # Determine role based on whether the name contains numbers
+            if any(char.isdigit() for char in email):
+                role_id = "11111111-1111-1111-1111-111111111111"  # Student role
+            else:
+                role_id = "22222222-2222-2222-2222-222222222222"  # Faculty role
+                
+            # Create new user
+            user = await create_user(email, name, role_id)
+            if not user:
+                return RedirectResponse(url='http://localhost:5173?error=Failed to create user')
+            else:
+                user = get_user_by_email(email)
+        
         if not user:
             return RedirectResponse(url='http://localhost:5173?error=User not authorized')
-        
+            
+        print("User found:", user)
         # Step 4: Extract role name from nested "roles" table
         role_data = user.get('roles')
+        
+        print("Role data:", role_data)
         role_name = role_data.get('role_name') if role_data else None
         if not role_name:
             return RedirectResponse(url='http://localhost:5173?error=User role not found')

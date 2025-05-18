@@ -1,59 +1,59 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle  } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
-import { Cctv, AlertTriangle, Eye, UserCheck, Car, Search, Users, Shield, Menu, X, Clock, MapPin, LogOut, User } from "lucide-react";
+import { Cctv, AlertTriangle, Eye, UserCheck, Car, Search, Users, Shield, Menu, X, Clock, MapPin, LogOut } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { VehicleAccess } from "./VehicleAccess";
 import { VisitorPreAuth } from "./VisitorPreAuth";
 import { useNavigate } from "react-router-dom";
 
-const systemMetricsData = [
-  { name: "CPU Usage", value: 45 },
-  { name: "Memory Usage", value: 62 },
-  { name: "Storage Usage", value: 78 },
-  { name: "Network Load", value: 35 },
-];
+// const systemMetricsData = [
+//   { name: "CPU Usage", value: 45 },
+//   { name: "Memory Usage", value: 62 },
+//   { name: "Storage Usage", value: 78 },
+//   { name: "Network Load", value: 35 },
+// ];
 
-const userActivityData = [
-  { time: "00:00", activeUsers: 120 },
-  { time: "04:00", activeUsers: 45 },
-  { time: "08:00", activeUsers: 280 },
-  { time: "12:00", activeUsers: 350 },
-  { time: "16:00", activeUsers: 420 },
-  { time: "20:00", activeUsers: 180 },
-];
+// const userActivityData = [
+//   { time: "00:00", activeUsers: 120 },
+//   { time: "04:00", activeUsers: 45 },
+//   { time: "08:00", activeUsers: 280 },
+//   { time: "12:00", activeUsers: 350 },
+//   { time: "16:00", activeUsers: 420 },
+//   { time: "20:00", activeUsers: 180 },
+// ];
 
-const securityEventsData = [
-  { name: "Login Attempts", count: 245 },
-  { name: "Failed Logins", count: 18 },
-  { name: "Suspicious IPs", count: 5 },
-  { name: "Blocked Requests", count: 12 },
-];
+// const securityEventsData = [
+//   { name: "Login Attempts", count: 245 },
+//   { name: "Failed Logins", count: 18 },
+//   { name: "Suspicious IPs", count: 5 },
+//   { name: "Blocked Requests", count: 12 },
+// ];
 
-const recentAlerts = [
-  {
-    id: 1,
-    type: "Security",
-    message: "Multiple failed login attempts detected",
-    severity: "High",
-    timestamp: "2 minutes ago",
-  },
-  {
-    id: 2,
-    type: "System",
-    message: "High CPU usage detected on server-01",
-    severity: "Medium",
-    timestamp: "15 minutes ago",
-  },
-  {
-    id: 3,
-    type: "User",
-    message: "Unusual activity pattern detected",
-    severity: "Low",
-    timestamp: "1 hour ago",
-  },
-];
+// const recentAlerts = [
+//   {
+//     id: 1,
+//     type: "Security",
+//     message: "Multiple failed login attempts detected",
+//     severity: "High",
+//     timestamp: "2 minutes ago",
+//   },
+//   {
+//     id: 2,
+//     type: "System",
+//     message: "High CPU usage detected on server-01",
+//     severity: "Medium",
+//     timestamp: "15 minutes ago",
+//   },
+//   {
+//     id: 3,
+//     type: "User",
+//     message: "Unusual activity pattern detected",
+//     severity: "Low",
+//     timestamp: "1 hour ago",
+//   },
+// ];
 
 const camerasData = [
   { id: 1, name: "Main Entrance", location: "Admin Block", status: "active" },
@@ -467,10 +467,10 @@ const AdminDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://localhost:8000/logout', {
-        method: 'GET',
-        credentials: 'include',
-      });
+      // const response = await fetch('http://localhost:8000/logout', {
+      //   method: 'GET',
+      //   credentials: 'include',
+      // });
       
       // Regardless of response, redirect to login page
       navigate('/');

@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle  } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
-import { Cctv, AlertTriangle, Eye, UserCheck, Car, Search, Users, Shield, Menu, X, Clock, MapPin } from "lucide-react";
+import { Cctv, AlertTriangle, Eye, UserCheck, Car, Search, Users, Shield, Menu, X, Clock, MapPin, LogOut, User } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { VehicleAccess } from "./VehicleAccess";
 import { VisitorPreAuth } from "./VisitorPreAuth";
+import { useNavigate } from "react-router-dom";
 
 const systemMetricsData = [
   { name: "CPU Usage", value: 45 },
@@ -387,6 +388,7 @@ const PersonnelSection = () => (
 );
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('cctv');
   const [user, setUser] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -403,6 +405,7 @@ const AdminDashboard = () => {
         }
         
         const userData = await response.json();
+        console.log('User data fetched:', userData);
         setUser(userData);
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -424,7 +427,10 @@ const AdminDashboard = () => {
     handleResize();
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const navItems = [
@@ -457,6 +463,23 @@ const AdminDashboard = () => {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/logout', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      // Regardless of response, redirect to login page
+      navigate('/');
+      
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Even if there's an error, still redirect to login page
+      navigate('/');
+    }
   };
 
   return (
@@ -501,10 +524,46 @@ const AdminDashboard = () => {
               ))}
             </ul>
           </nav>
+          
+          {/* Desktop user info and logout */}
           <div className="hidden md:block absolute bottom-0 w-64 border-t border-gray-800 p-4">
-            <div className="flex items-center">
-              <Shield className="h-6 w-6 mr-3" />
-              <span className="font-semibold">Admin</span>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center p-2 rounded-md">
+                <Shield className="h-6 w-6 mr-3 text-blue-400" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">Admin User</span>
+                  <span className="text-xs text-gray-400">{user?.email}</span>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-700 rounded-md"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </button>
+            </div>
+          </div>
+          
+          {/* Mobile user info and logout */}
+          <div className="md:hidden border-t border-gray-800 p-4 mt-4">
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center p-2 rounded-md">
+                <Shield className="h-6 w-6 mr-3 text-blue-400" />
+                <div className="flex flex-col">
+                  <span className="font-semibold">Admin User</span>
+                  <span className="text-xs text-gray-400">{user?.email}</span>
+                </div>
+              </div>
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-700 rounded-md"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </button>
             </div>
           </div>
         </div>

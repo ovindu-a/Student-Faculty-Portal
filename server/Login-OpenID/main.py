@@ -28,7 +28,7 @@ app.add_middleware(
     secret_key=os.getenv("SECRET_KEY", "JrFglAnbqZxzSVQ1bar2ZtXbMG8cRvgoi4JWBjXN7dQ"),
     session_cookie="session",
     max_age=3600,  # 1 hour
-    same_site="lax",  # Changed to lax for better compatibility
+    same_site="lax",  
     https_only=False,  # Set to True in production
     path="/"  # Ensure cookie is available for all paths
 )

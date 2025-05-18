@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Button } from "./ui/button"
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
+import axios from "axios"
 
 // Simple Select Component
 const Select = ({
@@ -49,28 +50,16 @@ interface Resource {
   name: string
   type: string
   capacity: number
-  location: string
-  accessibility: string[]
-  status: "available" | "under_maintenance" | "restricted"
-  lastMaintenance?: string
-  nextMaintenance?: string
-  maintenanceNotes?: string
-  maintenancePersons?: string[]
 }
 
 // Booking interface
-interface Booking {
-  id: string
-  resourceId: string
+type Booking = {
+  id: number
+  bookedBy: string
   resourceName: string
-  userId: string
-  userName: string
   date: string
   startTime: string
   endTime: string
-  purpose: string
-  status: "confirmed" | "cancelled"
-  location: string
 }
 
 // Mock data for resources
@@ -80,55 +69,33 @@ const mockResources: Resource[] = [
     name: "Computer Lab A",
     type: "Lab",
     capacity: 30,
-    location: "Main Building, Floor 2",
-    accessibility: ["Wheelchair Accessible"],
-    status: "available",
-    lastMaintenance: "2023-12-15",
-    nextMaintenance: "2024-06-15",
   },
   {
     id: "2",
     name: "Lecture Hall 101",
     type: "Auditorium",
-    capacity: 120,
-    location: "Science Block",
-    accessibility: ["Wheelchair Accessible", "Hearing Loop"],
-    status: "available",
+    capacity: 120
   },
   {
     id: "3",
     name: "Conference Room B",
     type: "Room",
-    capacity: 15,
-    location: "Admin Building",
-    accessibility: [],
-    status: "under_maintenance",
-    lastMaintenance: "2024-01-10",
-    nextMaintenance: "2024-02-01",
-    maintenanceNotes: "Projector replacement in progress",
-    maintenancePersons: ["John Doe"],
+    capacity: 15
   },
   {
     id: "4",
     name: "University Van",
     type: "Vehicle",
-    capacity: 8,
-    location: "Parking Lot A",
-    accessibility: ["Wheelchair Lift"],
-    status: "available",
-    lastMaintenance: "2024-01-05",
-    nextMaintenance: "2024-04-05",
+    capacity: 8
   },
   {
     id: "5",
     name: "Study Room 3",
     type: "Room",
-    capacity: 6,
-    location: "Library, Floor 3",
-    accessibility: [],
-    status: "restricted",
-    maintenanceNotes: "Reserved for graduate students only",
+    capacity: 6
   },
+
+
 ]
 
 // Mock data for bookings
@@ -175,9 +142,24 @@ const mockBookings: Booking[] = [
 ]
 
 // Time slots for the calendar view
-const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
+const generateTimeSlots = (start: string, end: string, interval: number = 30) => {
+  const slots = []
+  let [hour, minute] = start.split(":" as const).map(Number)
+  const [endHour, endMinute] = end.split(":" as const).map(Number)
 
-// Calendar day component
+  while (hour < endHour || (hour === endHour && minute <= endMinute)) {
+    slots.push(`${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`)
+    minute += interval
+    if (minute >= 60) {
+      minute = 0
+      hour++
+    }
+  }
+  return slots
+}
+
+const timeSlots = generateTimeSlots("07:00", "17:00")
+
 const CalendarDay = ({
   date,
   resources,
@@ -200,7 +182,7 @@ const CalendarDay = ({
             <tr className="bg-gray-100">
               <th className="p-2 border-r text-left">Resource</th>
               {timeSlots.map((slot) => (
-                <th key={slot} className="p-2 border-r text-center min-w-[80px]">
+                <th key={slot} className="p-2 border-r text-center min-w-[60px] text-xs">
                   {slot}
                 </th>
               ))}
@@ -214,27 +196,25 @@ const CalendarDay = ({
                   <div className="text-xs text-gray-500">{resource.location}</div>
                 </td>
                 {timeSlots.map((slot) => {
-                  // Check if this slot is booked for this resource
-                  const isBooked = bookings.some(
-                    (booking) =>
-                      booking.resourceId === resource.id &&
-                      booking.date === date &&
-                      booking.startTime <= slot &&
-                      booking.endTime > slot &&
-                      booking.status === "confirmed",
+                  const booking = bookings.find(
+                    (b) =>
+                      b.resourceId === resource.id &&
+                      b.date === date &&
+                      b.startTime <= slot &&
+                      b.endTime > slot &&
+                      b.status === "confirmed"
                   )
 
-                  // Check if resource is under maintenance
+                  const isBooked = !!booking
                   const isUnderMaintenance = resource.status === "under_maintenance"
 
-                  let cellClass = "p-2 border-r text-center cursor-pointer"
-                  if (isBooked) {
-                    cellClass += " bg-red-100"
-                  } else if (isUnderMaintenance) {
-                    cellClass += " bg-yellow-100"
-                  } else {
-                    cellClass += " bg-green-100 hover:bg-green-200"
-                  }
+                  const cellClass = `p-2 border-r text-center text-xs ${
+                    isBooked
+                      ? "bg-red-100 text-red-600 font-medium"
+                      : isUnderMaintenance
+                      ? "bg-yellow-100 text-yellow-600 font-medium"
+                      : "bg-green-100 hover:bg-green-200 text-green-600 font-medium cursor-pointer"
+                  }`
 
                   return (
                     <td
@@ -246,13 +226,7 @@ const CalendarDay = ({
                         }
                       }}
                     >
-                      {isBooked ? (
-                        <span className="text-xs font-medium text-red-600">Booked</span>
-                      ) : isUnderMaintenance ? (
-                        <span className="text-xs font-medium text-yellow-600">Maintenance</span>
-                      ) : (
-                        <span className="text-xs font-medium text-green-600">Available</span>
-                      )}
+                      {isBooked ? "Booked" : isUnderMaintenance ? "Maintenance" : "Available"}
                     </td>
                   )
                 })}
@@ -264,10 +238,99 @@ const CalendarDay = ({
     </div>
   )
 }
+// const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
+
+// // Calendar day component
+// const CalendarDay = ({
+//   date,
+//   resources,
+//   bookings,
+//   onBookResource,
+// }: {
+//   date: string
+//   resources: Resource[]
+//   bookings: Booking[]
+//   onBookResource: (resource: Resource, timeSlot: string) => void
+// }) => {
+//   return (
+//     <div className="border rounded-md overflow-hidden">
+//       <div className="bg-gray-800 text-white p-3 font-medium">
+//         {new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+//       </div>
+//       <div className="overflow-x-auto">
+//         <table className="w-full">
+//           <thead>
+//             <tr className="bg-gray-100">
+//               <th className="p-2 border-r text-left">Resource</th>
+//               {timeSlots.map((slot) => (
+//                 <th key={slot} className="p-2 border-r text-center min-w-[80px]">
+//                   {slot}
+//                 </th>
+//               ))}
+//             </tr>
+//           </thead>
+//           <tbody>
+//             {resources.map((resource) => (
+//               <tr key={resource.id} className="border-t">
+//                 <td className="p-2 border-r">
+//                   <div className="font-medium">{resource.name}</div>
+//                   <div className="text-xs text-gray-500">{resource.location}</div>
+//                 </td>
+//                 {timeSlots.map((slot) => {
+//                   // Check if this slot is booked for this resource
+//                   const isBooked = bookings.some(
+//                     (booking) =>
+//                       booking.resourceId === resource.id &&
+//                       booking.date === date &&
+//                       booking.startTime <= slot &&
+//                       booking.endTime > slot &&
+//                       booking.status === "confirmed",
+//                   )
+
+//                   // Check if resource is under maintenance
+//                   const isUnderMaintenance = resource.status === "under_maintenance"
+
+//                   let cellClass = "p-2 border-r text-center cursor-pointer"
+//                   if (isBooked) {
+//                     cellClass += " bg-red-100"
+//                   } else if (isUnderMaintenance) {
+//                     cellClass += " bg-yellow-100"
+//                   } else {
+//                     cellClass += " bg-green-100 hover:bg-green-200"
+//                   }
+
+//                   return (
+//                     <td
+//                       key={`${resource.id}-${slot}`}
+//                       className={cellClass}
+//                       onClick={() => {
+//                         if (!isBooked && !isUnderMaintenance) {
+//                           onBookResource(resource, slot)
+//                         }
+//                       }}
+//                     >
+//                       {isBooked ? (
+//                         <span className="text-xs font-medium text-red-600">Booked</span>
+//                       ) : isUnderMaintenance ? (
+//                         <span className="text-xs font-medium text-yellow-600">Maintenance</span>
+//                       ) : (
+//                         <span className="text-xs font-medium text-green-600">Available</span>
+//                       )}
+//                     </td>
+//                   )
+//                 })}
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+//     </div>
+//   )
+// }
 
 // Available Resources component
 const AvailableResources = () => {
-  const [resources] = useState<Resource[]>(mockResources)
+  const [resources, setResources] = useState<Resource[]>([])
   const [bookings] = useState<Booking[]>(mockBookings)
   const [selectedDate, setSelectedDate] = useState<string>("2024-02-15")
   const [resourceType, setResourceType] = useState<string>("all")
@@ -279,6 +342,32 @@ const AvailableResources = () => {
   const [bookingDuration, setBookingDuration] = useState<string>("1")
   const [bookingPurpose, setBookingPurpose] = useState<string>("")
 
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const response = await axios.get("http://127.0.0.1:8010/get-resources")
+        const data = response.data
+
+        // Optional: transform keys if needed
+        const formattedResources: Resource[] = data.map((r: any) => ({
+          id: r.id,
+          name: r.resource_name,
+          type: r.resource_type,
+          capacity: r.capacity,
+          createdAt: r.created_at,
+        }))
+
+        setResources(formattedResources)
+      } catch (error) {
+        console.error("Error fetching resources:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchResources()
+  }, [])
   // Filter resources based on selected filters
   const filteredResources = resources.filter((resource) => {
     if (resourceType !== "all" && resource.type !== resourceType) return false
@@ -292,7 +381,7 @@ const AvailableResources = () => {
   })
 
   // Get unique locations for the filter
-  const locations = [...new Set(resources.map((r) => r.location.split(",")[0].trim()))]
+  // const locations = [...new Set(resources.map((r) => r.location.split(",")[0].trim()))]
 
   // Handle booking a resource
   const handleBookResource = (resource: Resource, timeSlot: string) => {
@@ -367,11 +456,11 @@ const AvailableResources = () => {
               <Label className="text-gray-300 mb-1 block">Location</Label>
               <Select value={location} onValueChange={setLocation} className="bg-gray-800 border-gray-700 text-white">
                 <SelectItem value="all">All Locations</SelectItem>
-                {locations.map((loc) => (
+                {/* {locations.map((loc) => (
                   <SelectItem key={loc} value={loc}>
                     {loc}
                   </SelectItem>
-                ))}
+                ))} */}
               </Select>
             </div>
             <div>
@@ -462,8 +551,34 @@ const AvailableResources = () => {
 
 // Booked Resources component
 const BookedResources = () => {
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+const fetchCurrentUser = async () => {
+  const response = await axios.get("http://127.0.0.1:8100/user", {
+    withCredentials: true, 
+  });
+  return response.data;
+};
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const user = await fetchCurrentUser();
+      console.log(user)
+      const response = await axios.get("http://127.0.0.1:8010/get-bookings-user")
+      setBookings(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+      setError("Failed to load bookings");
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, []);
   // Handle modifying a booking
   const handleModifyBooking = (booking: Booking) => {
     // In a real app, this would open a dialog to modify the booking
@@ -471,65 +586,38 @@ const BookedResources = () => {
   }
 
   // Handle cancelling a booking
-  const handleCancelBooking = (bookingId: string) => {
-    // In a real app, this would make an API call to cancel the booking
-    setBookings(bookings.map((booking) => (booking.id === bookingId ? { ...booking, status: "cancelled" } : booking)))
-  }
+  // const handleCancelBooking = (bookingId: string) => {
+  //   // In a real app, this would make an API call to cancel the booking
+  //   setBookings(bookings.map((booking) => (booking.id === bookingId ? { ...booking, status: "cancelled" } : booking)))
+  // }
 
-  return (
+return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Your Booked Resources</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {bookings.map((booking) => (
-          <Card key={booking.id} className={`overflow-hidden ${booking.status === "cancelled" ? "bg-gray-100" : ""}`}>
-            <CardHeader className={`pb-2 ${booking.status === "cancelled" ? "bg-gray-200" : "bg-gray-900 text-white"}`}>
-              <CardTitle className="flex justify-between items-center text-base">
-                <span>{booking.resourceName}</span>
-                <Badge variant={booking.status === "confirmed" ? "default" : "destructive"}>
-                  {booking.status === "confirmed" ? "Confirmed" : "Cancelled"}
-                </Badge>
-              </CardTitle>
+          <Card key={booking.id} className="overflow-hidden">
+            <CardHeader className="pb-2 bg-gray-900 text-white">
+              <CardTitle className="text-base">{booking.resourceName}</CardTitle>
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
-                  <span>
-                    {new Date(booking.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
-                  <span>
-                    {booking.startTime} - {booking.endTime}
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <MapPin className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
-                  <span>{booking.location}</span>
-                </div>
-                {booking.purpose && (
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-gray-600">{booking.purpose}</p>
-                  </div>
-                )}
-
-                {booking.status === "confirmed" && (
-                  <div className="flex justify-end space-x-2 pt-2">
-                    <Button variant="outline" size="sm" onClick={() => handleModifyBooking(booking)}>
-                      <Edit className="h-4 w-4 mr-1" /> Modify
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleCancelBooking(booking.id)}>
-                      <XCircle className="h-4 w-4 mr-1" /> Cancel
-                    </Button>
-                  </div>
-                )}
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-start">
+                <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
+                <span>
+                  {new Date(booking.date).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
+              <div className="flex items-start">
+                <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
+                <span>
+                  {booking.startTime} - {booking.endTime}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -547,12 +635,38 @@ const BookedResources = () => {
 
 // Resource Management component
 const ResourceManagement = () => {
-  const [resources, setResources] = useState<Resource[]>(mockResources)
+  const [resources, setResources] = useState<Resource[]>([])
   const [showAddResourceDialog, setShowAddResourceDialog] = useState<boolean>(false)
   const [showMaintenanceDialog, setShowMaintenanceDialog] = useState<boolean>(false)
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>("")
 
+useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const response = await axios.get("http://127.0.0.1:8010/get-resources")
+        const data = response.data
+
+        // Optional: transform keys if needed
+        const formattedResources: Resource[] = data.map((r: any) => ({
+          id: r.id,
+          name: r.resource_name,
+          type: r.resource_type,
+          capacity: r.capacity,
+          createdAt: r.created_at,
+          maintained:r.maintained_by
+        }))
+
+        setResources(formattedResources)
+      } catch (error) {
+        console.error("Error fetching resources:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchResources()
+  }, [])
   // New resource form state
   const [newResource, setNewResource] = useState<Partial<Resource>>({
     name: "",
@@ -637,8 +751,7 @@ const ResourceManagement = () => {
   const filteredResources = resources.filter(
     (resource) =>
       resource.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      resource.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      resource.location.toLowerCase().includes(searchQuery.toLowerCase()),
+      resource.type.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Get status badge for a resource
@@ -712,9 +825,9 @@ const ResourceManagement = () => {
                     <th className="p-3 text-left">Name</th>
                     <th className="p-3 text-left">Type</th>
                     <th className="p-3 text-left">Capacity</th>
-                    <th className="p-3 text-left">Location</th>
-                    <th className="p-3 text-left">Status</th>
-                    <th className="p-3 text-left">Actions</th>
+                    {/* <th className="p-3 text-left">Location</th> */}
+                    {/* <th className="p-3 text-left">Status</th>
+                    <th className="p-3 text-left">Actions</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -723,8 +836,8 @@ const ResourceManagement = () => {
                       <td className="p-3">{resource.name}</td>
                       <td className="p-3">{resource.type}</td>
                       <td className="p-3">{resource.capacity}</td>
-                      <td className="p-3">{resource.location}</td>
-                      <td className="p-3">{getStatusBadge(resource.status)}</td>
+                      {/* <td className="p-3">{resource.location}</td> */}
+                      {/* <td className="p-3">{getStatusBadge(resource.status)}</td> */}
                       <td className="p-3">
                         <div className="flex space-x-2">
                           <Button variant="outline" size="sm">
@@ -865,10 +978,8 @@ const ResourceManagement = () => {
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="p-3 text-left">Resource Name</th>
-                    <th className="p-3 text-left">Status</th>
-                    <th className="p-3 text-left">Last Maintenance</th>
-                    <th className="p-3 text-left">Next Scheduled</th>
-                    <th className="p-3 text-left">Notes</th>
+                    <th className="p-3 text-left">Assigned to</th>
+                    {/* <th className="p-3 text-left">Notes</th> */}
                     <th className="p-3 text-left">Actions</th>
                   </tr>
                 </thead>
@@ -877,12 +988,11 @@ const ResourceManagement = () => {
                     <tr key={resource.id} className="border-t hover:bg-gray-50">
                       <td className="p-3">
                         <div className="font-medium">{resource.name}</div>
-                        <div className="text-xs text-gray-500">{resource.type}</div>
+              
                       </td>
-                      <td className="p-3">{getStatusBadge(resource.status)}</td>
-                      <td className="p-3">{resource.lastMaintenance || "N/A"}</td>
-                      <td className="p-3">{resource.nextMaintenance || "N/A"}</td>
-                      <td className="p-3">
+                      <td className="p-3">{resource.maintained}</td>
+
+                      {/* <td className="p-3">
                         {resource.maintenanceNotes ? (
                           <div className="max-w-[200px] truncate" title={resource.maintenanceNotes}>
                             {resource.maintenanceNotes}
@@ -890,7 +1000,7 @@ const ResourceManagement = () => {
                         ) : (
                           <span className="text-gray-400">No notes</span>
                         )}
-                      </td>
+                      </td> */}
                       <td className="p-3">
                         <Button variant="outline" size="sm" onClick={() => handleOpenMaintenanceDialog(resource)}>
                           Manage
@@ -994,3 +1104,7 @@ const ResourceManagement = () => {
 }
 
 export default ResourceManagement
+function setLoading(arg0: boolean) {
+  throw new Error("Function not implemented.")
+}
+

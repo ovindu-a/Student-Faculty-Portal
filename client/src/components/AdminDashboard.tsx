@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle  } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
-import { Cctv, AlertTriangle, Eye, UserCheck, Car, Search, Users, Shield, Menu, X } from "lucide-react";
+import { Cctv, AlertTriangle, Eye, UserCheck, Car, Search, Users, Shield, Menu, X, Clock, MapPin } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { VehicleAccess } from "./VehicleAccess";
 import { VisitorPreAuth } from "./VisitorPreAuth";
@@ -178,114 +178,142 @@ function AlertsPanel() {
   const [selectedAlert, setSelectedAlert] = useState<number | null>(null);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Security Alerts</h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground font-semibold text-gray-600">
           {alertsData.filter(a => a.status === "new").length} new alerts requiring attention
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          {alertsData.map((alert) => (
-            <div
-              key={alert.id}
-              className={`flex items-start gap-4 p-4 bg-white rounded-lg border ${
-                selectedAlert === alert.id ? 'border-yellow-500' : 'border-gray-200'
-              } cursor-pointer`}
-              onClick={() => setSelectedAlert(alert.id)}
-            >
-              <div className={`p-2 rounded-md ${getSeverityColor(alert.severity)}`}>
-                <AlertTriangle className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">{alert.type}</h3>
-                    <p className="text-sm text-muted-foreground">{alert.location}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+        <Card className="bg-gray-900 text-white overflow-hidden flex flex-col">
+          <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <CardTitle>Recent Alerts</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-auto flex-1">
+            <div className="space-y-1">
+              {alertsData.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`flex items-start p-4 border-l-4 cursor-pointer ${
+                    selectedAlert === alert.id 
+                      ? 'border-yellow-500 bg-gray-800' 
+                      : 'border-transparent hover:bg-gray-800'
+                  }`}
+                  onClick={() => setSelectedAlert(alert.id)}
+                >
+                  <div className={`p-2 rounded-md mr-3 ${getSeverityColor(alert.severity)}`}>
+                    <AlertTriangle className="h-5 w-5 text-white" />
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={getStatusClass(alert.status)}
-                  >
-                    {formatStatus(alert.status)}
-                  </Badge>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-white">{alert.type}</h3>
+                        <p className="text-sm text-gray-200">{alert.location}</p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={getStatusClass(alert.status)}
+                      >
+                        {formatStatus(alert.status)}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs text-gray-300 flex items-center">
+                        <Clock className="h-3.5 w-3.5 mr-1" />
+                        {alert.timestamp}
+                      </span>
+                      <Button 
+                        size="sm" 
+                        className="h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
+                      >
+                        View Camera
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs text-muted-foreground">{alert.timestamp}</span>
-                  <Button variant="ghost" className="h-8 bg-blue-600 text-white hover:bg-blue-900 hover:text-white">
-                    View Camera
-                  </Button>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </Card>
         
-        <div className="lg:col-span-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Alert Details</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {selectedAlert ? (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-lg">
-                      {alertsData.find(a => a.id === selectedAlert)?.type}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
+        <Card className="bg-gray-900 text-white overflow-hidden flex flex-col">
+          <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <CardTitle>Alert Details</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-auto">
+            {selectedAlert ? (
+              <div className="space-y-6">
+                <div className="p-4 bg-gray-800 rounded-md">
+                  <h3 className="text-lg font-medium text-white mb-1">
+                    {alertsData.find(a => a.id === selectedAlert)?.type}
+                  </h3>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                    <p className="text-sm text-gray-300">
                       {alertsData.find(a => a.id === selectedAlert)?.location}
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status</span>
-                      <Badge
-                        variant="outline"
-                        className={getStatusClass(
-                          alertsData.find(a => a.id === selectedAlert)?.status || ""
-                        )}
-                      >
-                        {formatStatus(
-                          alertsData.find(a => a.id === selectedAlert)?.status || ""
-                        )}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Time</span>
-                      <span>{alertsData.find(a => a.id === selectedAlert)?.timestamp}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Camera</span>
-                      <span>
-                        {
-                          camerasData.find(
-                            c => c.id === alertsData.find(a => a.id === selectedAlert)?.cameraId
-                          )?.name
-                        }
-                      </span>
-                    </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gray-800 rounded-md p-3">
+                    <p className="text-sm text-gray-400 mb-1">Status</p>
+                    <Badge
+                      variant="outline"
+                      className={getStatusClass(
+                        alertsData.find(a => a.id === selectedAlert)?.status || ""
+                      )}
+                    >
+                      {formatStatus(
+                        alertsData.find(a => a.id === selectedAlert)?.status || ""
+                      )}
+                    </Badge>
                   </div>
-                  
-                  <div className="bg-gray-900 aspect-video rounded-md flex items-center justify-center">
-                    <p className="text-gray-500 text-lg font-bold">NO SIGNAL</p>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button className="flex-1 bg-yellow-500 hover:bg-yellow-600">Investigate</Button>
-                    <Button variant="outline" className="flex-1">Dismiss</Button>
+                  <div className="bg-gray-800 rounded-md p-3">
+                    <p className="text-sm text-gray-400 mb-1">Time</p>
+                    <p className="text-sm font-medium">
+                      {alertsData.find(a => a.id === selectedAlert)?.timestamp}
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <div className="h-full flex items-center justify-center p-6">
-                  <p className="text-muted-foreground">Select an alert to view details</p>
+                
+                <div className="p-3 bg-gray-800 rounded-md">
+                  <p className="text-sm text-gray-400 mb-1">Camera</p>
+                  <div className="flex justify-between items-center">
+                    <p className="font-medium">
+                      {
+                        camerasData.find(
+                          c => c.id === alertsData.find(a => a.id === selectedAlert)?.cameraId
+                        )?.name
+                      }
+                    </p>
+                    <Badge variant="outline" className="bg-red-500 text-white border-red-500 text-xs">LIVE</Badge>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                
+                <div className="bg-gray-900 aspect-video rounded-md flex items-center justify-center border border-gray-800">
+                  <p className="text-gray-500 text-lg font-bold">NO SIGNAL</p>
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white">
+                    <Eye className="h-4 w-4 mr-2" /> Investigate
+                  </Button>
+                  <Button variant="outline" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800">
+                    <X className="h-4 w-4 mr-2" /> Dismiss
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center p-6">
+                <AlertTriangle className="h-16 w-16 text-gray-700 mb-4" />
+                <p className="text-gray-400">Select an alert to view details</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

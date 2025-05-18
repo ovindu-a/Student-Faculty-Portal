@@ -1,9 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-// import { Input } from "./ui/input";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-// import { Label } from "./ui/label";
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { CarFront, Plus, X, CalendarIcon, Clock, ListCheck } from "lucide-react";
 import { Badge } from "./ui/badge";
 
@@ -53,7 +52,14 @@ const sampleVehicles = [
   { plate: "MNO 678", make: "Tesla", model: "Model 3", color: "Gray", owner: "Ms. Jennifer Davis", designation: "Guest" },
 ];
 
-export function VisitorPreAuth() {
+// Mock data for pending vehicles
+const pendingVehicles = [
+  { id: 1, plate: "ABC123", name: "John Doe", validFrom: "2023-07-10", validUntil: "2023-07-15", status: "pending" },
+  { id: 2, plate: "XYZ789", name: "Jane Smith", validFrom: "2023-07-12", validUntil: "2023-07-14", status: "pending" },
+  { id: 3, plate: "DEF456", name: "Robert Johnson", validFrom: "2023-07-11", validUntil: "2023-07-16", status: "pending" }
+];
+
+export const VisitorPreAuth: React.FC = () => {
   const [events, setEvents] = useState(preAuthData);
   const [selectedEvent, setSelectedEvent] = useState<number | null>(1);
   const [vehicles, setVehicles] = useState(sampleVehicles);
@@ -66,6 +72,12 @@ export function VisitorPreAuth() {
     owner: "",
     designation: "",
   });
+  const [plateNumber, setPlateNumber] = useState("");
+  const [name, setName] = useState("");
+  const [reason, setReason] = useState("");
+  const [validFrom, setValidFrom] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+  const [addedBy, setAddedBy] = useState("");
 
   // Handler for adding a new vehicle
   const handleAddVehicle = () => {
@@ -86,250 +98,164 @@ export function VisitorPreAuth() {
     setVehicles(vehicles.filter(v => v.plate !== plate));
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Here you would typically submit the data to your backend
+    console.log({
+      plateNumber,
+      name,
+      reason,
+      validFrom,
+      validUntil,
+      addedBy
+    });
+    
+    // Reset form
+    setPlateNumber("");
+    setName("");
+    setReason("");
+    setValidFrom("");
+    setValidUntil("");
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      <div>
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight">Visitor Pre-Authorization</h1>
-        <p className="text-muted-foreground">
-          Manage pre-authorized vehicles for campus events
-        </p>
+        <p className="text-muted-foreground">Manage visitor vehicle access and pre-authorizations</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-5">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Events</CardTitle>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-1" /> New Event
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {events.map((event) => (
-                  <div
-                    key={event.id}
-                    className={`p-4 border rounded-lg cursor-pointer ${
-                      selectedEvent === event.id ? "border-primary bg-primary/5" : "border-border"
-                    }`}
-                    onClick={() => setSelectedEvent(event.id)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{event.eventName}</h3>
-                        <div className="flex items-center gap-1 text-muted-foreground text-sm mt-1">
-                          <CalendarIcon className="h-3.5 w-3.5" />
-                          <span>{event.date}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{event.timeWindow}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <Badge
-                          variant="outline"
-                          className={`${
-                            event.status === "active"
-                              ? "border-security-green text-security-green"
-                              : event.status === "scheduled"
-                              ? "border-security-yellow text-security-yellow"
-                              : "border-security-red text-security-red"
-                          }`}
-                        >
-                          {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-                        </Badge>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <CarFront className="h-3.5 w-3.5" />
-                          <span className="text-xs">{event.totalVehicles} vehicles</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-7">
-          <Card className="mb-6">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>
-                  {events.find(e => e.id === selectedEvent)?.eventName || "Event Details"}
-                </CardTitle>
-                <Badge
-                  variant="outline"
-                  className={`${
-                    events.find(e => e.id === selectedEvent)?.status === "active"
-                      ? "border-security-green text-security-green"
-                      : events.find(e => e.id === selectedEvent)?.status === "scheduled"
-                      ? "border-security-yellow text-security-yellow"
-                      : "border-security-red text-security-red"
-                  }`}
-                >
-                  {
-                    events.find(e => e.id === selectedEvent)?.status.charAt(0).toUpperCase() +
-                    (events.find(e => e.id === selectedEvent)?.status.slice(1) || "")
-                  }
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <p className="text-sm font-medium mb-1">Date</p>
-                  <p className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    {events.find(e => e.id === selectedEvent)?.date}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Time Window</p>
-                  <p className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    {events.find(e => e.id === selectedEvent)?.timeWindow}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <CardTitle>Pre-authorized Vehicles</CardTitle>
-                  <Badge variant="outline" className="ml-2">
-                    {vehicles.length} vehicles
-                  </Badge>
-                </div>
-                <Button size="sm" onClick={() => setShowAddForm(true)}>
-                  <Plus className="h-4 w-4 mr-1" /> Add Vehicle
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {showAddForm && (
-                <div className="mb-6 p-4 border border-border rounded-lg">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-medium">Add New Vehicle</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      onClick={() => setShowAddForm(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="plate">License Plate</Label>
-                      <Input 
-                        id="plate" 
-                        value={newVehicle.plate} 
-                        onChange={(e) => setNewVehicle({...newVehicle, plate: e.target.value})}
-                        placeholder="ABC 123" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="make">Make</Label>
-                      <Input 
-                        id="make" 
-                        value={newVehicle.make} 
-                        onChange={(e) => setNewVehicle({...newVehicle, make: e.target.value})}
-                        placeholder="Toyota" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="model">Model</Label>
-                      <Input 
-                        id="model" 
-                        value={newVehicle.model} 
-                        onChange={(e) => setNewVehicle({...newVehicle, model: e.target.value})}
-                        placeholder="Corolla" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="color">Color</Label>
-                      <Input 
-                        id="color" 
-                        value={newVehicle.color} 
-                        onChange={(e) => setNewVehicle({...newVehicle, color: e.target.value})}
-                        placeholder="Silver" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="owner">Owner Name</Label>
-                      <Input 
-                        id="owner" 
-                        value={newVehicle.owner} 
-                        onChange={(e) => setNewVehicle({...newVehicle, owner: e.target.value})}
-                        placeholder="Dr. John Smith" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="designation">Designation</Label>
-                      <Input 
-                        id="designation" 
-                        value={newVehicle.designation} 
-                        onChange={(e) => setNewVehicle({...newVehicle, designation: e.target.value})}
-                        placeholder="Guest Speaker" 
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button onClick={handleAddVehicle}>Add Vehicle</Button>
-                  </div>
-                </div>
-              )}
-              
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Plate</TableHead>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {vehicles.map((vehicle) => (
-                      <TableRow key={vehicle.plate}>
-                        <TableCell className="font-medium">{vehicle.plate}</TableCell>
-                        <TableCell>
-                          {vehicle.make} {vehicle.model} ({vehicle.color})
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p>{vehicle.owner}</p>
-                            <p className="text-xs text-muted-foreground">{vehicle.designation}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+        {/* Pending Vehicles */}
+        <Card className="bg-gray-900 text-white overflow-hidden flex flex-col">
+          <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <CardTitle>Pending Vehicles</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-auto flex-1">
+            {pendingVehicles.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-800">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm">Plate Number</th>
+                      <th className="px-4 py-3 text-left text-sm">Name</th>
+                      <th className="px-4 py-3 text-left text-sm">Valid From</th>
+                      <th className="px-4 py-3 text-left text-sm">Valid Until</th>
+                      <th className="px-4 py-3 text-left text-sm">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingVehicles.map((vehicle) => (
+                      <tr key={vehicle.id} className="border-t border-gray-800">
+                        <td className="px-4 py-3 text-sm">{vehicle.plate}</td>
+                        <td className="px-4 py-3 text-sm">{vehicle.name}</td>
+                        <td className="px-4 py-3 text-sm">{vehicle.validFrom}</td>
+                        <td className="px-4 py-3 text-sm">{vehicle.validUntil}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex gap-2">
+                            <Button size="sm" className="h-8 bg-blue-500 hover:bg-blue-600">
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 bg-red-500  hover:bg-red-600">
+                              Deny
+                            </Button>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveVehicle(vehicle.plate)}
-                            className="h-8 w-8 p-0 text-security-red"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-500">
+                No pending vehicles
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Add Guest Vehicle Form */}
+        <Card className="bg-gray-900 text-white">
+          <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <CardTitle>Add Guest Vehicle</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm">Plate Number</label>
+                <Input
+                  className="bg-gray-800 border-gray-700 text-white"
+                  value={plateNumber}
+                  onChange={(e) => setPlateNumber(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm">Name</label>
+                <Input
+                  className="bg-gray-800 border-gray-700 text-white"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm">Reason (Optional)</label>
+                <Textarea
+                  className="bg-gray-800 border-gray-700 text-white min-h-24"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm">Valid From</label>
+                  <Input
+                    type="datetime-local"
+                    className="bg-gray-800 border-gray-700 text-white"
+                    value={validFrom}
+                    onChange={(e) => setValidFrom(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm">Valid Until</label>
+                  <Input
+                    type="datetime-local"
+                    className="bg-gray-800 border-gray-700 text-white"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm">Added By</label>
+                <Input
+                  className="bg-gray-800 border-gray-700 text-white"
+                  value={addedBy}
+                  onChange={(e) => setAddedBy(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                Add Guest Vehicle
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-} 
+};
+
+export default VisitorPreAuth; 

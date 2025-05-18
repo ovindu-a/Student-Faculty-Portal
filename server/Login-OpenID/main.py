@@ -28,7 +28,7 @@ app.add_middleware(
     secret_key=os.getenv("SECRET_KEY", "JrFglAnbqZxzSVQ1bar2ZtXbMG8cRvgoi4JWBjXN7dQ"),
     session_cookie="session",
     max_age=3600,  # 1 hour
-    same_site="none",  # Changed to none for cross-origin
+    same_site="lax",  # Changed to lax for better compatibility
     https_only=False,  # Set to True in production
     path="/"  # Ensure cookie is available for all paths
 )
@@ -114,8 +114,12 @@ async def auth(request: Request):
         
         return response
     except Exception as e:
-        print(f"Auth error: {str(e)}")
-        return RedirectResponse(url='http://localhost:5173?error=Authentication Failed')
+        error_message = str(e)
+        print(f"Auth error: {error_message}")
+        # Log more details to help debugging
+        if hasattr(request, 'session'):
+            print("Session in error:", request.session)
+        return RedirectResponse(url=f'http://localhost:5173?error=Authentication Failed: {error_message}')
 
 @app.get("/user")
 async def get_user(request: Request):

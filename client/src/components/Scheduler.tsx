@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
+// import { Textarea } from "./ui/textarea";
 import { Card, CardContent } from "./ui/card";
 
 interface ExamForm {

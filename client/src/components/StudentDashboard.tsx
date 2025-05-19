@@ -1,57 +1,58 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Progress } from "./ui/progress";
-import { DashboardLayout } from './DashboardLayout';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { CourseRecommendations } from "./CourseRecommendations";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { BookOpen, Calendar, GraduationCap, Library, Settings, User } from "lucide-react";
+// import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+// import { Progress } from "./ui/progress";
+// import { DashboardLayout } from './DashboardLayout';
+// import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+// import { CourseRecommendations } from "./CourseRecommendations";
+// import { Button } from "./ui/button";
+// import { Badge } from "./ui/badge";
+import { BookOpen, Calendar, GraduationCap, Library, User } from "lucide-react";
+// import { BookOpen, Calendar, GraduationCap, Library, Settings, User } from "lucide-react";
 import { SidebarTrigger } from "./ui/sidebar-trigger";
 
-interface Course {
-  id: number;
-  title: string;
-  progress: number;
-  nextLesson: string;
-}
+// interface Course {
+//   id: number;
+//   title: string;
+//   progress: number;
+//   nextLesson: string;
+// }
 
-const performanceData = [
-  { name: "Week 1", score: 85 },
-  { name: "Week 2", score: 78 },
-  { name: "Week 3", score: 90 },
-  { name: "Week 4", score: 88 },
-  { name: "Week 5", score: 92 },
-];
+// const performanceData = [
+//   { name: "Week 1", score: 85 },
+//   { name: "Week 2", score: 78 },
+//   { name: "Week 3", score: 90 },
+//   { name: "Week 4", score: 88 },
+//   { name: "Week 5", score: 92 },
+// ];
 
-const subjectData = [
-  { name: "Mathematics", completed: 78 },
-  { name: "Science", completed: 65 },
-  { name: "History", completed: 90 },
-  { name: "English", completed: 85 },
-];
+// const subjectData = [
+//   { name: "Mathematics", completed: 78 },
+//   { name: "Science", completed: 65 },
+//   { name: "History", completed: 90 },
+//   { name: "English", completed: 85 },
+// ];
 
-const currentCourses: Course[] = [
-  {
-    id: 1,
-    title: "Advanced Mathematics",
-    progress: 65,
-    nextLesson: "Calculus Fundamentals",
-  },
-  {
-    id: 2,
-    title: "Physics 101",
-    progress: 78,
-    nextLesson: "Newtonian Mechanics",
-  },
-  {
-    id: 3,
-    title: "Data Science Fundamentals",
-    progress: 42,
-    nextLesson: "Regression Analysis",
-  },
-];
+// const currentCourses: Course[] = [
+//   {
+//     id: 1,
+//     title: "Advanced Mathematics",
+//     progress: 65,
+//     nextLesson: "Calculus Fundamentals",
+//   },
+//   {
+//     id: 2,
+//     title: "Physics 101",
+//     progress: 78,
+//     nextLesson: "Newtonian Mechanics",
+//   },
+//   {
+//     id: 3,
+//     title: "Data Science Fundamentals",
+//     progress: 42,
+//     nextLesson: "Regression Analysis",
+//   },
+// ];
 
 // Placeholder components for different sections
 const Courses = () => (

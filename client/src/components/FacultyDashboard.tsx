@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Typography, Box, Button, Avatar, Paper } from '@mui/material';
+// import { Container, Typography, Box, Button, Avatar, Paper } from '@mui/material';
+import { Container, Typography} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
-import { StudentEngagement } from "./StudentEngagement";
-import { DashboardLayout } from "./DashboardLayout";
-import { Badge } from "./ui/badge";
-import { BookOpen, Calendar, GraduationCap, Library, Settings, User, Users } from "lucide-react";
+// import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+// import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+// import { StudentEngagement } from "./StudentEngagement";
+// import { DashboardLayout } from "./DashboardLayout";
+// import { Badge } from "./ui/badge";
+import { Calendar, GraduationCap, Library, User, Users } from "lucide-react";
+// import { BookOpen, Calendar, GraduationCap, Library, Settings, User, Users } from "lucide-react";
 import { SidebarTrigger } from "./ui/sidebar-trigger";
 import Scheduler from "./Scheduler";
 
@@ -18,50 +20,50 @@ interface UserInfo {
   role: string;
 }
 
-const coursePerformanceData = [
-  { name: "Week 1", average: 82 },
-  { name: "Week 2", average: 78 },
-  { name: "Week 3", average: 83 },
-  { name: "Week 4", average: 76 },
-  { name: "Week 5", average: 80 },
-];
+// const coursePerformanceData = [
+//   { name: "Week 1", average: 82 },
+//   { name: "Week 2", average: 78 },
+//   { name: "Week 3", average: 83 },
+//   { name: "Week 4", average: 76 },
+//   { name: "Week 5", average: 80 },
+// ];
 
-const riskDistributionData = [
-  { name: "Low Risk", value: 65, color: "#10b981" },
-  { name: "Medium Risk", value: 25, color: "#f59e0b" },
-  { name: "High Risk", value: 10, color: "#ef4444" },
-];
+// const riskDistributionData = [
+//   { name: "Low Risk", value: 65, color: "#10b981" },
+//   { name: "Medium Risk", value: 25, color: "#f59e0b" },
+//   { name: "High Risk", value: 10, color: "#ef4444" },
+// ];
 
-const participationData = [
-  { name: "Forum Posts", count: 245 },
-  { name: "Assignments", count: 180 },
-  { name: "Quizzes", count: 135 },
-  { name: "Live Sessions", count: 90 },
-];
+// const participationData = [
+//   { name: "Forum Posts", count: 245 },
+//   { name: "Assignments", count: 180 },
+//   { name: "Quizzes", count: 135 },
+//   { name: "Live Sessions", count: 90 },
+// ];
 
-const atRiskStudents = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    course: "Advanced Mathematics",
-    riskScore: 85,
-    lastActive: "3 days ago",
-  },
-  {
-    id: 2,
-    name: "Jamie Smith",
-    course: "Physics 101",
-    riskScore: 72,
-    lastActive: "5 days ago",
-  },
-  {
-    id: 3,
-    name: "Taylor Wilson",
-    course: "Data Science Fundamentals",
-    riskScore: 78,
-    lastActive: "4 days ago",
-  },
-];
+// const atRiskStudents = [
+//   {
+//     id: 1,
+//     name: "Alex Johnson",
+//     course: "Advanced Mathematics",
+//     riskScore: 85,
+//     lastActive: "3 days ago",
+//   },
+//   {
+//     id: 2,
+//     name: "Jamie Smith",
+//     course: "Physics 101",
+//     riskScore: 72,
+//     lastActive: "5 days ago",
+//   },
+//   {
+//     id: 3,
+//     name: "Taylor Wilson",
+//     course: "Data Science Fundamentals",
+//     riskScore: 78,
+//     lastActive: "4 days ago",
+//   },
+// ];
 
 // Placeholder components for different sections
 
@@ -122,18 +124,18 @@ const FacultyDashboard: React.FC = () => {
       });
   }, [navigate]);
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('http://localhost:8100/logout');
-      const data = await response.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    } catch (err) {
-      console.error('Logout error:', err);
-      navigate('/');
-    }
-  };
+  // const handleLogout = async () => {
+  //   try {
+  //     const response = await fetch('http://localhost:8100/logout');
+  //     const data = await response.json();
+  //     if (data.redirect) {
+  //       window.location.href = data.redirect;
+  //     }
+  //   } catch (err) {
+  //     console.error('Logout error:', err);
+  //     navigate('/');
+  //   }
+  // };
 
   if (!userInfo) {
     return (

@@ -3,54 +3,54 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-import { CarFront, Plus, X, CalendarIcon, Clock, ListCheck } from "lucide-react";
-import { Badge } from "./ui/badge";
+// import { CarFront, Plus, X, CalendarIcon, Clock, ListCheck } from "lucide-react";
+// import { Badge } from "./ui/badge";
 
 // Sample visitor pre-authorization data
-const preAuthData = [
-  {
-    id: 1,
-    eventName: "Annual Science Conference",
-    date: "2025-05-15",
-    timeWindow: "08:00 - 18:00",
-    totalVehicles: 12,
-    status: "active",
-  },
-  {
-    id: 2,
-    eventName: "Alumni Meet",
-    date: "2025-05-20",
-    timeWindow: "14:00 - 21:00",
-    totalVehicles: 25,
-    status: "active", 
-  },
-  {
-    id: 3,
-    eventName: "Career Fair",
-    date: "2025-06-05",
-    timeWindow: "09:00 - 17:00",
-    totalVehicles: 18,
-    status: "scheduled",
-  },
-  {
-    id: 4,
-    eventName: "Board of Directors Meeting",
-    date: "2025-04-28",
-    timeWindow: "10:00 - 16:00",
-    totalVehicles: 8,
-    status: "expired",
-  },
-];
+// const preAuthData = [
+//   {
+//     id: 1,
+//     eventName: "Annual Science Conference",
+//     date: "2025-05-15",
+//     timeWindow: "08:00 - 18:00",
+//     totalVehicles: 12,
+//     status: "active",
+//   },
+//   {
+//     id: 2,
+//     eventName: "Alumni Meet",
+//     date: "2025-05-20",
+//     timeWindow: "14:00 - 21:00",
+//     totalVehicles: 25,
+//     status: "active", 
+//   },
+//   {
+//     id: 3,
+//     eventName: "Career Fair",
+//     date: "2025-06-05",
+//     timeWindow: "09:00 - 17:00",
+//     totalVehicles: 18,
+//     status: "scheduled",
+//   },
+//   {
+//     id: 4,
+//     eventName: "Board of Directors Meeting",
+//     date: "2025-04-28",
+//     timeWindow: "10:00 - 16:00",
+//     totalVehicles: 8,
+//     status: "expired",
+//   },
+// ];
 
 // Sample vehicles for an event
-const sampleVehicles = [
-  { plate: "ABC 123", make: "Toyota", model: "Camry", color: "Silver", owner: "Dr. James Wilson", designation: "Guest Speaker" },
-  { plate: "XYZ 789", make: "Honda", model: "Accord", color: "Black", owner: "Prof. Emily Chen", designation: "Department Chair" },
-  { plate: "DEF 456", make: "Ford", model: "Explorer", color: "White", owner: "Dr. Sarah Miller", designation: "Keynote Speaker" },
-  { plate: "GHI 012", make: "Nissan", model: "Altima", color: "Blue", owner: "Mr. Robert Johnson", designation: "Industry Partner" },
-  { plate: "JKL 345", make: "Chevrolet", model: "Malibu", color: "Red", owner: "Dr. Michael Brown", designation: "Guest" },
-  { plate: "MNO 678", make: "Tesla", model: "Model 3", color: "Gray", owner: "Ms. Jennifer Davis", designation: "Guest" },
-];
+// const sampleVehicles = [
+//   { plate: "ABC 123", make: "Toyota", model: "Camry", color: "Silver", owner: "Dr. James Wilson", designation: "Guest Speaker" },
+//   { plate: "XYZ 789", make: "Honda", model: "Accord", color: "Black", owner: "Prof. Emily Chen", designation: "Department Chair" },
+//   { plate: "DEF 456", make: "Ford", model: "Explorer", color: "White", owner: "Dr. Sarah Miller", designation: "Keynote Speaker" },
+//   { plate: "GHI 012", make: "Nissan", model: "Altima", color: "Blue", owner: "Mr. Robert Johnson", designation: "Industry Partner" },
+//   { plate: "JKL 345", make: "Chevrolet", model: "Malibu", color: "Red", owner: "Dr. Michael Brown", designation: "Guest" },
+//   { plate: "MNO 678", make: "Tesla", model: "Model 3", color: "Gray", owner: "Ms. Jennifer Davis", designation: "Guest" },
+// ];
 
 // Mock data for pending vehicles
 const pendingVehicles = [
@@ -60,18 +60,18 @@ const pendingVehicles = [
 ];
 
 export const VisitorPreAuth: React.FC = () => {
-  const [events, setEvents] = useState(preAuthData);
-  const [selectedEvent, setSelectedEvent] = useState<number | null>(1);
-  const [vehicles, setVehicles] = useState(sampleVehicles);
+  // const [events, setEvents] = useState(preAuthData);
+  // const [selectedEvent, setSelectedEvent] = useState<number | null>(1);
+  // const [vehicles, setVehicles] = useState(sampleVehicles);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newVehicle, setNewVehicle] = useState({
-    plate: "",
-    make: "",
-    model: "",
-    color: "",
-    owner: "",
-    designation: "",
-  });
+  // const [newVehicle, setNewVehicle] = useState({
+  //   plate: "",
+  //   make: "",
+  //   model: "",
+  //   color: "",
+  //   owner: "",
+  //   designation: "",
+  // });
   const [plateNumber, setPlateNumber] = useState("");
   const [name, setName] = useState("");
   const [reason, setReason] = useState("");
@@ -80,23 +80,26 @@ export const VisitorPreAuth: React.FC = () => {
   const [addedBy, setAddedBy] = useState("");
 
   // Handler for adding a new vehicle
-  const handleAddVehicle = () => {
-    setVehicles([newVehicle, ...vehicles]);
-    setNewVehicle({
-      plate: "",
-      make: "",
-      model: "",
-      color: "",
-      owner: "",
-      designation: "",
-    });
-    setShowAddForm(false);
-  };
+  // const handleAddVehicle = () => {
+  //   setVehicles([newVehicle, ...vehicles]);
+  //   setNewVehicle({
+  //     plate: "",
+  //     make: "",
+  //     model: "",
+  //     color: "",
+  //     owner: "",
+  //     designation: "",
+  //   });
+  //   setShowAddForm(false);
+  // };
+
+  console.log(showAddForm);
+  setShowAddForm(showAddForm);
 
   // Handler for removing a vehicle
-  const handleRemoveVehicle = (plate: string) => {
-    setVehicles(vehicles.filter(v => v.plate !== plate));
-  };
+  // const handleRemoveVehicle = (plate: string) => {
+  //   setVehicles(vehicles.filter(v => v.plate !== plate));
+  // };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

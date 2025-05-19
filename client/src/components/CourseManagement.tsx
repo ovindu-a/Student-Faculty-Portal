@@ -7,6 +7,7 @@ import { Textarea } from "./ui/textarea";
 import { Badge } from "./ui/badge";
 import { Book, Plus, UserPlus, UserMinus, FileText, Search, Check, X } from "lucide-react";
 import axios from "axios";
+import API_CONFIG from "../lib/config";
 
 // Types
 interface Course {
@@ -67,7 +68,7 @@ const CourseManagement = () => {
     setError(null);
     
     try {
-      const response = await axios.get("http://localhost:8000/api-gateway/courses/all");
+      const response = await axios.get(API_CONFIG.COURSES.ALL);
       setAllCourses(response.data || []);
     } catch (err) {
       console.error("Error fetching courses:", err);
@@ -97,7 +98,7 @@ const CourseManagement = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post("http://localhost:8000/api-gateway/courses/all-yet-to-assign");
+      const response = await axios.post(API_CONFIG.COURSES.UNASSIGNED);
       setUnassignedCourses(response.data || []);
     } catch (err) {
       console.error("Error fetching unassigned courses:", err);
@@ -124,7 +125,7 @@ const CourseManagement = () => {
     try {
       // This is a mock implementation - the actual API likely would take a course_id
       // For now, we'll simulate this with the provided API
-      const response = await axios.post("http://localhost:8000/api-gateway/courses/enrolled", {
+      const response = await axios.post(API_CONFIG.COURSES.ENROLLED, {
         reg_number: "IT20200123" // Mock reg number as the API requires it
       });
       
@@ -162,7 +163,7 @@ const CourseManagement = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post("http://localhost:8000/api-gateway/courses/eligible", {
+      const response = await axios.post(API_CONFIG.COURSES.ELIGIBLE, {
         reg_number: "IT20200123" // Mock reg number as the API requires it
       });
       
@@ -199,7 +200,7 @@ const CourseManagement = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post("http://localhost:8000/api-gateway/courses/eligible-yet-to-enroll", {
+      const response = await axios.post(API_CONFIG.COURSES.YET_TO_ENROLL, {
         reg_number: "IT20200123" // Mock reg number as the API requires it
       });
       
@@ -233,7 +234,7 @@ const CourseManagement = () => {
     setLoading(true);
     
     try {
-      const response = await axios.get("http://localhost:8000/api-gateway/courses/lecturers");
+      const response = await axios.get(API_CONFIG.COURSES.LECTURERS);
       setLecturers(response.data || []);
     } catch (err) {
       console.error("Error fetching lecturers:", err);
@@ -259,7 +260,7 @@ const CourseManagement = () => {
     setLoading(true);
     
     try {
-      await axios.post("http://localhost:8000/api-gateway/courses/enroll", {
+      await axios.post(API_CONFIG.COURSES.ENROLL, {
         reg_number: regNumber,
         course_id: courseId
       });
@@ -299,7 +300,7 @@ const CourseManagement = () => {
     setLoading(true);
     
     try {
-      await axios.post("http://localhost:8000/api-gateway/courses/unenroll", {
+      await axios.post(API_CONFIG.COURSES.UNENROLL, {
         reg_number: regNumber,
         course_id: courseId
       });
@@ -346,7 +347,7 @@ const CourseManagement = () => {
     setLoading(true);
     
     try {
-      await axios.post("http://localhost:8000/api-gateway/courses/add-new-course", newCourse);
+      await axios.post(API_CONFIG.COURSES.ADD_COURSE, newCourse);
       
       // Refresh the courses list
       await fetchAllCourses();

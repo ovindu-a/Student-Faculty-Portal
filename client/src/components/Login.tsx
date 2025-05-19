@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Container, Typography, Box } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
+import API_CONFIG from '../lib/config';
 
 const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,7 +14,7 @@ const Login: React.FC = () => {
 
   const handleGoogleLogin = () => {
     setIsLoading(true);
-    window.location.href = 'http://localhost:8100/login';
+    window.location.href = API_CONFIG.AUTH.LOGIN;  
   };
 
   return (

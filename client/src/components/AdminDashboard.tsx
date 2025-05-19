@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { VehicleAccess } from "./VehicleAccess";
 import { VisitorPreAuth } from "./VisitorPreAuth";
 import { useNavigate } from "react-router-dom";
+import API_CONFIG from "../lib/config";
 
 // const systemMetricsData = [
 //   { name: "CPU Usage", value: 45 },
@@ -396,7 +397,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('http://localhost:8000/user', {
+        const response = await fetch(API_CONFIG.AUTH.USER, {
           credentials: 'include',
         });
         

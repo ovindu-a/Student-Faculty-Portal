@@ -569,7 +569,7 @@ const handleConfirmBooking = async () => {
 
       {/* Calendar View */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Resource Availability Calendar</h3>
+        <h3 className="text-lg text-gray-200 font-medium">Resource Availability Calendar</h3>
         <CalendarDay
           date={selectedDate}
           resources={filteredResources}
@@ -895,22 +895,22 @@ useEffect(() => {
   return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Resource Management</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Resource Management</h1>
         <p className="text-muted-foreground">Manage and book resources across the campus</p>
       </div>
 
       <Tabs defaultValue="available" className="flex-1">
         <TabsList className="bg-gray-800 border-b border-gray-700">
-          <TabsTrigger value="available" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="available" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Available Resources
           </TabsTrigger>
-          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Booked Resources
           </TabsTrigger>
-          <TabsTrigger value="management" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="management" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Resource Management
           </TabsTrigger>
-          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Maintenance Dashboard
           </TabsTrigger>
         </TabsList>

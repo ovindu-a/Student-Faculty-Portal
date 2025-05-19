@@ -197,12 +197,12 @@ const CalendarDay = ({
                 </td>
                 {timeSlots.map((slot) => {
                   const booking = bookings.find(
-                    (b) =>
-                      b.resourceId === resource.id &&
-                      b.date === date &&
-                      b.startTime <= slot &&
-                      b.endTime > slot &&
-                      b.status === "confirmed"
+                      (b) =>
+                        b.resource?.id === resource.id &&
+                        b.date === date &&
+                        b.startTime <= slot &&
+                        b.endTime > slot &&
+                        b.status === "confirmed"
                   )
 
                   const isBooked = !!booking
@@ -331,8 +331,8 @@ const CalendarDay = ({
 // Available Resources component
 const AvailableResources = () => {
   const [resources, setResources] = useState<Resource[]>([])
-  const [bookings] = useState<Booking[]>(mockBookings)
-  const [selectedDate, setSelectedDate] = useState<string>("2024-02-15")
+  const [bookings,setBookings] = useState<Booking[]>([])
+  const [selectedDate, setSelectedDate] = useState<string>("2025-05-19")
   const [resourceType, setResourceType] = useState<string>("all")
   const [capacity, setCapacity] = useState<string>("all")
   const [location, setLocation] = useState<string>("all")
@@ -379,35 +379,126 @@ const AvailableResources = () => {
     if (location !== "all" && !resource.location.includes(location)) return false
     return true
   })
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8010/get-bookings");
+      const rawData = response.data;
+
+      const formattedBookings: Booking[] = rawData.map((b: any) => {
+        const resource = resources.find((res) => res.name === b.resource_name);
+
+        return {
+          id: b.id,
+          date: b.booking_on,
+          startTime: b.booking_starttime.slice(0, 5),
+          endTime: b.booking_endtime.slice(0, 5),
+          status: "confirmed",
+          resource, // attach full resource object if needed
+        };
+      });
+
+      setBookings(formattedBookings);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+      setError("Failed to load bookings");
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [resources]); // make sure this runs after `resources` is loaded
+
+
 
   // Get unique locations for the filter
   // const locations = [...new Set(resources.map((r) => r.location.split(",")[0].trim()))]
 
   // Handle booking a resource
   const handleBookResource = (resource: Resource, timeSlot: string) => {
+    
     setSelectedResource(resource)
     setSelectedTimeSlot(timeSlot)
     setShowBookingDialog(true)
+
+    
   }
+  const [user, setUser] = useState<User | null>(null);
+  const fetchUser = async (): Promise<User | null> => {
+    try {
+      const response = await fetch("http://localhost:8100/user", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Authentication failed");
+      }
+
+      const userData: User = await response.json();
+      setUser(userData);
+      return userData;
+    } catch (err) {
+      console.log("Error in getting user:", err);
+      return null;
+    }
+  };
 
   // Handle confirming a booking
-  const handleConfirmBooking = () => {
-    // In a real app, this would make an API call to create the booking
-    console.log("Booking confirmed:", {
-      resource: selectedResource,
-      date: selectedDate,
-      startTime: selectedTimeSlot,
-      endTime: calculateEndTime(selectedTimeSlot, Number.parseInt(bookingDuration)),
-      purpose: bookingPurpose,
-    })
-
-    // Close the dialog and reset form
-    setShowBookingDialog(false)
-    setSelectedResource(null)
-    setSelectedTimeSlot("")
-    setBookingDuration("1")
-    setBookingPurpose("")
+const handleConfirmBooking = async () => {
+  const user = await fetchUser();
+  if (!user || !user.id) {
+    console.error("User not authenticated");
+    return;
   }
+
+  // Format date as YYYY-MM-DD
+  const formattedDate = new Date(selectedDate).toISOString().split("T")[0];
+
+  // Format time as HH:MM:SS
+  const formatTime = (time: string): string => {
+    const [hour, minute] = time.split(":");
+    return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
+  };
+
+  const bookingData = {
+    booked_by: user.id,
+    resource_name: selectedResource.name,
+    start: formatTime(selectedTimeSlot),
+    end: formatTime(calculateEndTime(selectedTimeSlot, Number.parseInt(bookingDuration))),
+    booked_date: formattedDate,
+  };
+  console.log(bookingData)
+  try {
+    const response = await fetch("http://127.0.0.1:8010/create-booking", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bookingData),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create booking");
+    }
+
+    const data = await response.json();
+    console.log("Booking confirmed:", data);
+
+    // Reset form state
+    setShowBookingDialog(false);
+    setSelectedResource(null);
+    setSelectedTimeSlot("");
+    setBookingDuration("1");
+    setBookingPurpose("");
+  } catch (error) {
+    console.error("Error booking resource:", error);
+  }
+};
+
+
+
+
 
   // Calculate end time based on start time and duration
   const calculateEndTime = (startTime: string, durationHours: number) => {
@@ -478,7 +569,7 @@ const AvailableResources = () => {
 
       {/* Calendar View */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Resource Availability Calendar</h3>
+        <h3 className="text-lg text-gray-200 font-medium">Resource Availability Calendar</h3>
         <CalendarDay
           date={selectedDate}
           resources={filteredResources}
@@ -549,89 +640,122 @@ const AvailableResources = () => {
   )
 }
 
-// Booked Resources component
-const BookedResources = () => {
-  const [bookings, setBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-const fetchCurrentUser = async () => {
-  const response = await axios.get("http://127.0.0.1:8100/user", {
-    withCredentials: true, 
-  });
-  return response.data;
+type User = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
 };
 
-useEffect(() => {
-  const fetchData = async () => {
+
+const BookedResources = () => {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  const fetchUser = async (): Promise<User | null> => {
     try {
-      const user = await fetchCurrentUser();
-      console.log(user)
-      const response = await axios.get("http://127.0.0.1:8010/get-bookings-user")
-      setBookings(response.data);
-      setLoading(false);
+      const response = await fetch("http://localhost:8100/user", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Authentication failed");
+      }
+
+      const userData: User = await response.json();
+      setUser(userData);
+      return userData;
     } catch (err) {
-      console.error("Failed to fetch bookings:", err);
-      setError("Failed to load bookings");
-      setLoading(false);
+      console.log("Error in getting user:", err);
+      return null;
     }
   };
 
-  fetchData();
-}, []);
-  // Handle modifying a booking
-  const handleModifyBooking = (booking: Booking) => {
-    // In a real app, this would open a dialog to modify the booking
-    console.log("Modify booking:", booking)
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const user = await fetchUser();
 
-  // Handle cancelling a booking
-  // const handleCancelBooking = (bookingId: string) => {
-  //   // In a real app, this would make an API call to cancel the booking
-  //   setBookings(bookings.map((booking) => (booking.id === bookingId ? { ...booking, status: "cancelled" } : booking)))
-  // }
+        if (!user) {
+          setError("User not authenticated");
+          setLoading(false);
+          return;
+        }
 
-return (
+        console.log("Sending user ID:", user.id);
+
+        const response = await axios.get("http://127.0.0.1:8010/get-bookings-user", {
+          params: { userid: user.id },
+        });
+
+        const formattedBookings: Booking[] = response.data.map((b: any) => ({
+          id: b.id,
+          resourceName: b.resource_name,
+          date: b.booking_on,
+          startTime: b.booking_starttime.slice(0, 5), // "HH:mm"
+          endTime: b.booking_endtime.slice(0, 5),
+        }));
+
+        setBookings(formattedBookings);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch bookings:", err);
+        setError("Failed to load bookings");
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
+
+  return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Your Booked Resources</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {bookings.map((booking) => (
-          <Card key={booking.id} className="overflow-hidden">
-            <CardHeader className="pb-2 bg-gray-900 text-white">
-              <CardTitle className="text-base">{booking.resourceName}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-start">
-                <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
-                <span>
-                  {new Date(booking.date).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-              </div>
-              <div className="flex items-start">
-                <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
-                <span>
-                  {booking.startTime} - {booking.endTime}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {bookings.length === 0 && (
+        {bookings.length > 0 ? (
+          bookings.map((booking) => (
+            <Card key={booking.id} className="overflow-hidden">
+              <CardHeader className="pb-2 bg-gray-900 text-white">
+                <CardTitle className="text-base">{booking.resourceName}</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-start">
+                  <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
+                  <span>
+                    {new Date(booking.date).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-start">
+                  <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
+                  <span>
+                    {booking.startTime} - {booking.endTime}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
           <div className="col-span-2 p-8 text-center text-gray-500 border rounded-md">
             You don't have any booked resources yet.
           </div>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
+
 
 // Resource Management component
 const ResourceManagement = () => {
@@ -771,22 +895,22 @@ useEffect(() => {
   return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Resource Management</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Resource Management</h1>
         <p className="text-muted-foreground">Manage and book resources across the campus</p>
       </div>
 
       <Tabs defaultValue="available" className="flex-1">
         <TabsList className="bg-gray-800 border-b border-gray-700">
-          <TabsTrigger value="available" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="available" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Available Resources
           </TabsTrigger>
-          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Booked Resources
           </TabsTrigger>
-          <TabsTrigger value="management" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="management" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Resource Management
           </TabsTrigger>
-          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
             Maintenance Dashboard
           </TabsTrigger>
         </TabsList>
@@ -904,7 +1028,7 @@ useEffect(() => {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="location">Location *</Label>
                     <Input
                       id="location"
@@ -912,10 +1036,10 @@ useEffect(() => {
                       value={newResource.location}
                       onChange={(e) => setNewResource({ ...newResource, location: e.target.value })}
                       required
-                    />
+                    /> */}
                   </div>
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label>Accessibility Options</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center space-x-2">
@@ -958,7 +1082,7 @@ useEffect(() => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
@@ -1105,6 +1229,10 @@ useEffect(() => {
 
 export default ResourceManagement
 function setLoading(arg0: boolean) {
+  throw new Error("Function not implemented.")
+}
+
+function setError(arg0: string) {
   throw new Error("Function not implemented.")
 }
 

@@ -55,7 +55,7 @@ const Login: React.FC = () => {
 
             <div className="space-y-4">
               <button
-                onClick={handleGoogleLogin}
+            onClick={handleGoogleLogin}
                 disabled={isLoading}
                 className="w-full bg-gray-700 hover:bg-gray-600 text-white rounded-lg px-4 py-3 flex items-center justify-center transition-colors duration-300 group relative overflow-hidden"
               >

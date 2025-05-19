@@ -20,9 +20,11 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Search,
 } from "lucide-react"
 import Scheduler from "./Scheduler"
 import ResourceManagement from "./ResourceManagement"
+import CourseManagement from "./CourseManagement"
 
 // Simple Select Component
 const Select = ({
@@ -72,6 +74,8 @@ const ManualAttendance = () => {
   const [location, setLocation] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupMessage, setPopupMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [recentRecords, setRecentRecords] = useState<AttendanceRecord[]>([])
 
   useEffect(() => {
@@ -111,18 +115,19 @@ const ManualAttendance = () => {
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setMessage(null)
+    e.preventDefault(); // Prevent form submission
+    
+    setIsLoading(true);
+    setMessage(null);
 
     // Validation
     if (!regNumber || !courseCode || !location) {
       setMessage({
         type: "error",
         text: "Please fill in all required fields.",
-      })
-      setIsLoading(false)
-      return
+      });
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -138,29 +143,46 @@ const ManualAttendance = () => {
           location,
         }),
         credentials: "include",
-      })
+      });
 
-      const data = await response.json()
+      // Handle the case where the fetch itself completes but we don't get a response yet
+      if (!response) {
+        throw new Error("No response received");
+      }
+      
+      const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: "success", text: data.message || "Attendance recorded successfully" })
-        // Add the new record to recent records
-        setRecentRecords([data.data, ...recentRecords])
-        // Reset form
-        setRegNumber("")
-        setStatus("present")
-        setCourseCode("")
-        setLocation("")
+        // Success handling
+        setMessage({ type: "success", text: data.message || "Attendance recorded successfully" });
+        setPopupMessage({ type: "success", text: data.message || "Attendance recorded successfully" });
+        setShowPopup(true);
+        
+        // Only update records if we got valid data back
+        if (data.data) {
+          setRecentRecords(prev => [data.data, ...prev]);
+        }
+        
+        // Reset form fields
+        setRegNumber("");
+        setStatus("present");
+        setCourseCode("");
+        setLocation("");
       } else {
-        setMessage({ type: "error", text: data.message || "Failed to record attendance" })
+        // Error handling
+        setMessage({ type: "error", text: data.message || "Failed to record attendance" });
+        setPopupMessage({ type: "error", text: data.message || "Failed to record attendance" });
+        setShowPopup(true);
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Network error. Please try again." })
-      console.error("Error recording attendance:", error)
+      console.error("Error recording attendance:", error);
+      setMessage({ type: "error", text: "Network error. Please try again." });
+      setPopupMessage({ type: "error", text: "Network error. Please try again." });
+      setShowPopup(true);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -187,12 +209,50 @@ const ManualAttendance = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="bg-gray-900 text-white">
-        <CardHeader className="bg-gray-900 pb-3 pt-5">
-          <CardTitle>Manual Attendance</CardTitle>
+      {/* Popup/Modal for success/error messages */}
+      {showPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className={`bg-gray-900 rounded-lg shadow-xl p-6 max-w-md border ${
+            popupMessage?.type === "success" ? "border-green-500" : "border-red-500"
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-xl font-semibold ${
+                popupMessage?.type === "success" ? "text-green-400" : "text-red-400"
+              }`}>
+                {popupMessage?.type === "success" ? "Success" : "Error"}
+              </h3>
+              <button 
+                onClick={() => setShowPopup(false)} 
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-white mb-5">{popupMessage?.text}</p>
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => setShowPopup(false)} 
+                className={`${
+                  popupMessage?.type === "success" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Card className="bg-gray-800 text-white border border-gray-700 overflow-hidden">
+        <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+          <CardTitle className="text-white">Manual Attendance</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="p-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit(e);
+            return false;
+          }} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-300" htmlFor="reg_number">
                 Registration Number *
@@ -258,40 +318,45 @@ const ManualAttendance = () => {
               </div>
             )}
 
-            <Button type="submit" disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700">
+            <Button 
+              type="button"
+              onClick={handleSubmit} 
+              disabled={isLoading} 
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
               {isLoading ? "Submitting..." : "Record Attendance"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-900 text-white">
-        <CardHeader className="bg-gray-900 pb-3 pt-5">
-          <CardTitle>Recent Attendance Records</CardTitle>
+      <Card className="bg-gray-800 text-white border border-gray-700 overflow-hidden">
+        <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+          <CardTitle className="text-white">Recent Attendance Records</CardTitle>
         </CardHeader>
-        <CardContent className="p-0 overflow-auto">
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-800">
-                <tr className="border-b border-gray-800">
-                  <th className="text-left py-3 px-4 font-medium">Reg #</th>
-                  <th className="text-left py-3 px-4 font-medium">Course</th>
-                  <th className="text-left py-3 px-4 font-medium">Status</th>
-                  <th className="text-left py-3 px-4 font-medium">Location</th>
-                  <th className="text-left py-3 px-4 font-medium">Time</th>
+              <thead className="bg-gray-700">
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-3 px-4 font-medium text-white">Reg #</th>
+                  <th className="text-left py-3 px-4 font-medium text-white">Course</th>
+                  <th className="text-left py-3 px-4 font-medium text-white">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-white">Location</th>
+                  <th className="text-left py-3 px-4 font-medium text-white">Time</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-gray-800">
                 {recentRecords.length > 0 ? (
                   recentRecords.map((record) => (
-                    <tr key={record.attendance_id} className="border-b border-gray-800 hover:bg-gray-800">
-                      <td className="py-3 px-4">{record.reg_number}</td>
-                      <td className="py-3 px-4">{record.course_code}</td>
-                      <td className="py-3 px-4 flex items-center">
+                    <tr key={record.attendance_id} className="border-b border-gray-700 hover:bg-gray-700">
+                      <td className="py-3 px-4 text-white">{record.reg_number}</td>
+                      <td className="py-3 px-4 text-white">{record.course_code}</td>
+                      <td className="py-3 px-4 flex items-center text-white">
                         {getStatusIcon(record.status)}
                         <span className="ml-2 capitalize">{record.status}</span>
                       </td>
-                      <td className="py-3 px-4">{record.location}</td>
+                      <td className="py-3 px-4 text-white">{record.location}</td>
                       <td className="py-3 px-4 text-gray-400">{formatDate(record.timestamp)}</td>
                     </tr>
                   ))
@@ -378,7 +443,7 @@ const Students = () => {
             <h2>Attendance Report</h2>
             <p><strong>Period:</strong> October 1 - October 15, 2023</p>
             <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()}</p>
-          </div>
+  </div>
           
           <h3>Student Attendance Summary</h3>
           <table>
@@ -518,7 +583,7 @@ const Students = () => {
               >
                 <X size={20} />
               </Button>
-            </div>
+  </div>
             <div className="p-6 overflow-y-auto flex-1 bg-gray-900 text-gray-100">
               <div className="mb-6">
                 <h1 className="text-2xl font-bold text-white">CS101 - Introduction to Computer Science</h1>
@@ -557,7 +622,7 @@ const Students = () => {
                       </tr>
                     </tbody>
                   </table>
-                </div>
+  </div>
               </div>
               
               <div className="mb-8">
@@ -619,8 +684,8 @@ const Students = () => {
       )}
 
       <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Student Management</h1>
-        <p className="text-muted-foreground">Manage your students and track their progress</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Student Management</h1>
+        <p className="text-gray-400">Manage your students and track their progress</p>
       </div>
       <Tabs defaultValue="attendance" className="flex-1">
         <TabsList className="bg-gray-800 border-b border-gray-700">
@@ -640,9 +705,9 @@ const Students = () => {
         
         {/* Student List Tab */}
         <TabsContent value="students" className="mt-6">
-          <Card className="bg-gray-900 text-white">
-            <CardHeader className="bg-gray-900 pb-3 pt-5">
-              <CardTitle>Student List</CardTitle>
+          <Card className="bg-gray-800 text-white border border-gray-700 overflow-hidden">
+            <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+              <CardTitle className="text-white">Student List</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -677,27 +742,27 @@ const Students = () => {
               
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-800">
-                    <tr className="border-b border-gray-800">
-                      <th className="text-left py-3 px-4 font-medium">#</th>
-                      <th className="text-left py-3 px-4 font-medium">Reg Number</th>
-                      <th className="text-left py-3 px-4 font-medium">Name</th>
-                      <th className="text-left py-3 px-4 font-medium">Course</th>
-                      <th className="text-left py-3 px-4 font-medium">Email</th>
-                      <th className="text-left py-3 px-4 font-medium">Attendance</th>
-                      <th className="text-left py-3 px-4 font-medium">Actions</th>
+                  <thead className="bg-gray-700">
+                    <tr className="border-b border-gray-700">
+                      <th className="text-left py-3 px-4 font-medium text-white">#</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Reg Number</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Name</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Course</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Attendance</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-gray-800">
                     {filteredStudents.length > 0 ? (
                       filteredStudents.map((student, index) => (
-                        <tr key={student.id} className="border-b border-gray-800 hover:bg-gray-800">
-                          <td className="py-3 px-4">{index + 1}</td>
-                          <td className="py-3 px-4">{student.reg_number}</td>
-                          <td className="py-3 px-4">{student.name}</td>
-                          <td className="py-3 px-4">{student.course}</td>
-                          <td className="py-3 px-4">{student.email}</td>
-                          <td className="py-3 px-4">{student.attendance_rate}</td>
+                        <tr key={student.id} className="border-b border-gray-700 hover:bg-gray-700">
+                          <td className="py-3 px-4 text-white">{index + 1}</td>
+                          <td className="py-3 px-4 text-white">{student.reg_number}</td>
+                          <td className="py-3 px-4 text-white">{student.name}</td>
+                          <td className="py-3 px-4 text-white">{student.course}</td>
+                          <td className="py-3 px-4 text-white">{student.email}</td>
+                          <td className="py-3 px-4 text-white">{student.attendance_rate}</td>
                           <td className="py-3 px-4">
                             <Button
                               size="sm"
@@ -739,9 +804,9 @@ const Students = () => {
         {/* Reports Tab */}
         <TabsContent value="reports" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-900 text-white">
-              <CardHeader className="bg-gray-900 pb-3 pt-5">
-                <CardTitle>Generate Report</CardTitle>
+            <Card className="bg-gray-800 text-white border border-gray-700 overflow-hidden">
+              <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+                <CardTitle className="text-white">Generate Report</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={(e) => { e.preventDefault(); generateReport(); }} className="space-y-4">
@@ -849,13 +914,13 @@ const Students = () => {
               </CardContent>
             </Card>
             
-            <Card className="bg-gray-900 text-white">
-              <CardHeader className="bg-gray-900 pb-3 pt-5">
-                <CardTitle>Recent Reports</CardTitle>
+            <Card className="bg-gray-800 text-white border border-gray-700 overflow-hidden">
+              <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+                <CardTitle className="text-white">Recent Reports</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="space-y-1">
-                  <div className="border-b border-gray-800 p-4 hover:bg-gray-800">
+                  <div className="border-b border-gray-700 p-4 hover:bg-gray-700">
                     <div className="flex justify-between items-center mb-1">
                       <h3 className="font-medium text-white">CS101 Attendance Report</h3>
                       <span className="text-sm text-gray-400">Today</span>
@@ -880,7 +945,7 @@ const Students = () => {
                     </div>
                   </div>
                   
-                  <div className="border-b border-gray-800 p-4 hover:bg-gray-800">
+                  <div className="border-b border-gray-700 p-4 hover:bg-gray-700">
                     <div className="flex justify-between items-center mb-1">
                       <h3 className="font-medium text-white">CS102 Performance Summary</h3>
                       <span className="text-sm text-gray-400">Yesterday</span>
@@ -896,7 +961,7 @@ const Students = () => {
                     </div>
                   </div>
                   
-                  <div className="border-b border-gray-800 p-4 hover:bg-gray-800">
+                  <div className="border-b border-gray-700 p-4 hover:bg-gray-700">
                     <div className="flex justify-between items-center mb-1">
                       <h3 className="font-medium text-white">CS201 Course Summary</h3>
                       <span className="text-sm text-gray-400">Last Week</span>
@@ -921,63 +986,339 @@ const Students = () => {
   )
 }
 
-const Assignments = () => (
-  <div className="flex flex-col h-full">
-    <div className="mb-4">
-      <h1 className="text-2xl font-bold tracking-tight">Assignment Management</h1>
-      <p className="text-muted-foreground">Create and grade assignments for your courses</p>
-    </div>
-    <Card>
-      <CardHeader>
-        <CardTitle>Assignment Center</CardTitle>
-      </CardHeader>
-      <CardContent>
-    <p>Assignment creation and grading will be implemented here.</p>
-      </CardContent>
-    </Card>
-  </div>
-)
+const Grades = () => {
+  const [selectedCourse, setSelectedCourse] = useState("CS101");
 
-const Grades = () => (
-  <div className="flex flex-col h-full">
-    <div className="mb-4">
-      <h1 className="text-2xl font-bold tracking-tight">Grade Management</h1>
-      <p className="text-muted-foreground">Manage grades for all your courses and students</p>
-    </div>
-    <Card>
-      <CardHeader>
-        <CardTitle>Grade Center</CardTitle>
-      </CardHeader>
-      <CardContent>
-    <p>Grade submission and management will be implemented here.</p>
-      </CardContent>
-    </Card>
-  </div>
-)
+  // Mock data for course grades
+  const courseData = {
+    CS101: {
+      name: "Introduction to Programming",
+      students: [
+        { id: "S001", name: "John Smith", grade: 87, status: "Submitted" },
+        { id: "S002", name: "Emily Johnson", grade: 92, status: "Submitted" },
+        { id: "S003", name: "Michael Brown", grade: 78, status: "Submitted" },
+        { id: "S004", name: "Jessica Davis", grade: 95, status: "Submitted" },
+        { id: "S005", name: "David Wilson", grade: 65, status: "Submitted" },
+        { id: "S006", name: "Sarah Martinez", grade: 88, status: "Submitted" },
+        { id: "S007", name: "Robert Taylor", grade: 74, status: "Submitted" },
+        { id: "S008", name: "Jennifer Anderson", grade: 91, status: "Submitted" },
+      ],
+      distribution: [2, 1, 3, 1, 1], // F, D, C, B, A
+      average: 83.75,
+      highest: 95,
+      lowest: 65
+    },
+    CS202: {
+      name: "Data Structures",
+      students: [
+        { id: "S001", name: "John Smith", grade: 82, status: "Submitted" },
+        { id: "S003", name: "Michael Brown", grade: 88, status: "Submitted" },
+        { id: "S004", name: "Jessica Davis", grade: 90, status: "Submitted" },
+        { id: "S006", name: "Sarah Martinez", grade: 76, status: "Submitted" },
+        { id: "S009", name: "Thomas Lee", grade: 94, status: "Submitted" },
+        { id: "S010", name: "Lisa Wang", grade: 85, status: "Submitted" },
+      ],
+      distribution: [0, 1, 2, 2, 1], // F, D, C, B, A
+      average: 85.83,
+      highest: 94,
+      lowest: 76
+    },
+    CS303: {
+      name: "Database Systems",
+      students: [
+        { id: "S002", name: "Emily Johnson", grade: 91, status: "Submitted" },
+        { id: "S004", name: "Jessica Davis", grade: 88, status: "Submitted" },
+        { id: "S007", name: "Robert Taylor", grade: 79, status: "Submitted" },
+        { id: "S008", name: "Jennifer Anderson", grade: 86, status: "Submitted" },
+        { id: "S010", name: "Lisa Wang", grade: 92, status: "Submitted" },
+        { id: "S011", name: "Kevin Chen", grade: 85, status: "Submitted" },
+        { id: "S012", name: "Amanda Kim", grade: 90, status: "Submitted" },
+      ],
+      distribution: [0, 0, 1, 4, 2], // F, D, C, B, A
+      average: 87.29,
+      highest: 92,
+      lowest: 79
+    },
+    CS404: {
+      name: "Computer Networks",
+      students: [
+        { id: "S003", name: "Michael Brown", grade: null, status: "Pending" },
+        { id: "S006", name: "Sarah Martinez", grade: 81, status: "Submitted" },
+        { id: "S008", name: "Jennifer Anderson", grade: 89, status: "Submitted" },
+        { id: "S009", name: "Thomas Lee", grade: null, status: "Pending" },
+        { id: "S011", name: "Kevin Chen", grade: 77, status: "Submitted" },
+        { id: "S012", name: "Amanda Kim", grade: 85, status: "Submitted" },
+      ],
+      distribution: [0, 0, 2, 2, 0], // F, D, C, B, A (only counting submitted)
+      average: 83.00,
+      highest: 89,
+      lowest: 77
+    }
+  };
 
-const CourseContent = () => (
-  <div className="flex flex-col h-full">
-    <div className="mb-4">
-      <h1 className="text-2xl font-bold tracking-tight">Course Content</h1>
-      <p className="text-muted-foreground">Manage and organize course materials</p>
+  // Get current course data
+  const currentCourse = courseData[selectedCourse as keyof typeof courseData];
+
+  // Function to get grade letter
+  const getGradeLetter = (score: number | null) => {
+    if (score === null) return "N/A";
+    if (score >= 90) return "A";
+    if (score >= 80) return "B";
+    if (score >= 70) return "C";
+    if (score >= 60) return "D";
+    return "F";
+  };
+  
+  // Function to get grade color
+  const getGradeColor = (score: number | null) => {
+    if (score === null) return "text-gray-400";
+    if (score >= 90) return "text-green-400";
+    if (score >= 80) return "text-blue-400";
+    if (score >= 70) return "text-yellow-400";
+    if (score >= 60) return "text-orange-400";
+    return "text-red-400";
+  };
+  
+  return (
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold tracking-tight text-white">Grade Management</h1>
+        <p className="text-gray-400">View and manage grades for your courses</p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        {/* Course selector */}
+        <Card className="bg-gray-800 text-white border border-gray-700 md:col-span-1">
+          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+            <CardTitle className="text-white">Select Course</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-hidden">
+              {Object.keys(courseData).map((courseId) => (
+                <button
+                  key={courseId}
+                  className={`w-full p-4 text-left border-b border-gray-700 hover:bg-gray-700 flex flex-col ${
+                    selectedCourse === courseId ? "bg-gray-700 border-l-2 border-blue-500" : ""
+                  }`}
+                  onClick={() => setSelectedCourse(courseId)}
+                >
+                  <span className="font-medium text-white">{courseId}</span>
+                  <span className="text-sm text-gray-400">{courseData[courseId as keyof typeof courseData].name}</span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Summary cards */}
+        <Card className="bg-gray-800 text-white border border-gray-700">
+          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
+            <div className="text-3xl font-bold text-blue-400">{currentCourse.average}</div>
+            <div className="text-sm text-gray-400 mt-1">Class Average</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gray-800 text-white border border-gray-700">
+          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
+            <div className="text-3xl font-bold text-green-400">{currentCourse.highest}</div>
+            <div className="text-sm text-gray-400 mt-1">Highest Grade</div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gray-800 text-white border border-gray-700">
+          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
+            <div className="text-3xl font-bold text-yellow-400">{currentCourse.lowest}</div>
+            <div className="text-sm text-gray-400 mt-1">Lowest Grade</div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Grade distribution chart */}
+        <Card className="bg-gray-800 text-white border border-gray-700">
+          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+            <CardTitle className="text-white">Grade Distribution</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {/* Simple bar chart using divs */}
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <span className="w-8 text-center">A</span>
+                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                  <div 
+                    className="bg-green-500 h-full rounded-full" 
+                    style={{ 
+                      width: `${(currentCourse.distribution[4] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+                <span className="w-8 text-right">{currentCourse.distribution[4]}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-8 text-center">B</span>
+                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                  <div 
+                    className="bg-blue-500 h-full rounded-full" 
+                    style={{ 
+                      width: `${(currentCourse.distribution[3] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+                <span className="w-8 text-right">{currentCourse.distribution[3]}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-8 text-center">C</span>
+                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                  <div 
+                    className="bg-yellow-500 h-full rounded-full" 
+                    style={{ 
+                      width: `${(currentCourse.distribution[2] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+                <span className="w-8 text-right">{currentCourse.distribution[2]}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-8 text-center">D</span>
+                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                  <div 
+                    className="bg-orange-500 h-full rounded-full" 
+                    style={{ 
+                      width: `${(currentCourse.distribution[1] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+                <span className="w-8 text-right">{currentCourse.distribution[1]}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-8 text-center">F</span>
+                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                  <div 
+                    className="bg-red-500 h-full rounded-full" 
+                    style={{ 
+                      width: `${(currentCourse.distribution[0] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+                <span className="w-8 text-right">{currentCourse.distribution[0]}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Grading progress */}
+        <Card className="bg-gray-800 text-white border border-gray-700">
+          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+            <CardTitle className="text-white">Grading Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center">
+              {/* Circular progress indicator */}
+              <div className="relative w-36 h-36 mb-4">
+                <div className="absolute inset-0 rounded-full border-8 border-gray-700"></div>
+                <div 
+                  className="absolute inset-0 rounded-full border-8 border-blue-500 border-t-transparent" 
+                  style={{ 
+                    transform: `rotate(${(currentCourse.students.filter(s => s.grade !== null).length / currentCourse.students.length) * 360}deg)`,
+                    transition: "transform 1s ease-in-out" 
+                  }}
+                ></div>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="text-3xl font-bold">
+                    {Math.round((currentCourse.students.filter(s => s.grade !== null).length / currentCourse.students.length) * 100)}%
+                  </span>
+                  <span className="text-sm text-gray-400">Complete</span>
+                </div>
+              </div>
+              
+              <div className="text-center mt-2">
+                <div className="text-sm text-gray-400">
+                  {currentCourse.students.filter(s => s.grade !== null).length} of {currentCourse.students.length} submissions graded
+                </div>
+                <div className="text-sm text-gray-400 mt-2">
+                  {currentCourse.students.filter(s => s.grade === null).length} pending
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Student grades list */}
+        <Card className="bg-gray-800 text-white border border-gray-700 lg:col-span-2">
+          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700 flex flex-row justify-between items-center">
+            <CardTitle className="text-white">Student Grades</CardTitle>
+            <div className="relative w-48">
+              <Input 
+                type="text"
+                placeholder="Search students..."
+                className="bg-gray-800 border-gray-700 text-white pl-8"
+              />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-700">
+                  <tr className="border-b border-gray-700">
+                    <th className="text-left py-3 px-4 font-medium text-white">ID</th>
+                    <th className="text-left py-3 px-4 font-medium text-white">Name</th>
+                    <th className="text-left py-3 px-4 font-medium text-white">Status</th>
+                    <th className="text-right py-3 px-4 font-medium text-white">Grade</th>
+                    <th className="text-center py-3 px-4 font-medium text-white">Letter</th>
+                    <th className="text-right py-3 px-4 font-medium text-white">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-800">
+                  {currentCourse.students.map((student) => (
+                    <tr key={student.id} className="border-b border-gray-700 hover:bg-gray-700">
+                      <td className="py-3 px-4 text-white">{student.id}</td>
+                      <td className="py-3 px-4 text-white">{student.name}</td>
+                      <td className="py-3 px-4">
+                        {student.status === "Submitted" ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900 text-green-300">
+                            <CheckCircle className="h-3 w-3 mr-1" /> Graded
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-900 text-yellow-300">
+                            <AlertCircle className="h-3 w-3 mr-1" /> Pending
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {student.grade !== null ? student.grade : "--"}
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold">
+                        <span className={getGradeColor(student.grade)}>
+                          {getGradeLetter(student.grade)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <Button
+                          size="sm"
+                          className="h-8 bg-blue-600 hover:bg-blue-700"
+                          disabled={student.grade !== null}
+                        >
+                          Update
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-    <Card>
-      <CardHeader>
-        <CardTitle>Content Library</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p>Course content management will be implemented here.</p>
-      </CardContent>
-    </Card>
-  </div>
-)
+  )
+}
 
 const navItems = [
   { id: "scheduler", label: "Class Schedule", icon: Calendar },
   { id: "students", label: "Students", icon: Users },
-  { id: "assignments", label: "Assignments", icon: Library },
   { id: "grades", label: "Grades", icon: GraduationCap },
-  { id: "courses", label: "Course Content", icon: Book },
+  { id: "course-management", label: "Course Management", icon: GraduationCap },
   { id: "resources", label: "Resource Management", icon: Library },
 ]
 
@@ -1061,12 +1402,10 @@ const FacultyDashboard: React.FC = () => {
         return <Scheduler />
       case "students":
         return <Students />
-      case "assignments":
-        return <Assignments />
       case "grades":
         return <Grades />
-      case "courses":
-        return <CourseContent />
+      case "course-management":
+        return <CourseManagement />
       case "resources":
         return <ResourceManagement />
       default:
@@ -1075,9 +1414,9 @@ const FacultyDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen h-screen w-full bg-gray-50 overflow-hidden">
+    <div className="flex flex-col min-h-screen h-screen w-full bg-gray-900 overflow-hidden">
       {/* Top header bar for mobile - only shown on small screens */}
-      <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center">
+      <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center border-b border-gray-800">
         <h2 className="text-xl font-bold">Faculty Portal</h2>
         <button onClick={toggleSidebar} className="p-1">
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
@@ -1085,17 +1424,18 @@ const FacultyDashboard: React.FC = () => {
       </div>
 
       <div className="flex flex-1 overflow-hidden w-full h-full">
-        {/* Left sidebar - responsive */}
+        {/* Left sidebar - inspired by CampusSecure */}
         <div
-          className={`${isSidebarOpen ? "block" : "hidden"} md:block bg-gray-900 text-white border-r flex-shrink-0 ${
+          className={`${isSidebarOpen ? "block" : "hidden"} md:block bg-gray-900 text-white border-r border-gray-800 flex-shrink-0 ${
             isSidebarOpen ? "w-full md:w-64" : "w-0"
           } transition-all duration-300 fixed md:static md:h-full z-20 h-[calc(100%-4rem)]`}
         >
-          <div className="hidden md:block p-4 border-b border-gray-800">
+          <div className="hidden md:flex p-4 border-b border-gray-800 items-center">
+            <Shield className="h-6 w-6 mr-2 text-blue-400" />
             <h2 className="text-xl font-bold">Faculty Portal</h2>
           </div>
           <nav className="mt-4 overflow-y-auto h-[calc(100%-8rem)]">
-            <ul className="space-y-1">
+            <ul className="space-y-1 px-2">
               {navItems.map((item) => (
                 <li key={item.id}>
           <button
@@ -1105,10 +1445,10 @@ const FacultyDashboard: React.FC = () => {
                         setIsSidebarOpen(false)
                       }
                     }}
-                    className={`w-full flex items-center px-4 py-3 text-left ${
+                    className={`w-full flex items-center px-4 py-3 text-left rounded-md ${
                       activeSection === item.id
                         ? "bg-gray-800 text-white"
-                        : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                        : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
                     }`}
                   >
                     <item.icon className="h-5 w-5 mr-3" />
@@ -1119,52 +1459,52 @@ const FacultyDashboard: React.FC = () => {
             </ul>
           </nav>
 
-          {/* Desktop user info and logout */}
+          {/* User info and logout - styled like CampusSecure */}
           <div className="hidden md:block absolute bottom-0 w-64 border-t border-gray-800 p-4">
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center p-2 rounded-md">
-                <Shield className="h-6 w-6 mr-3 text-blue-400" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Faculty User</span>
-                  <span className="text-xs text-gray-400">{user?.email}</span>
-                </div>
+            <div className="flex items-center mb-3">
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
+                {user?.email?.charAt(0).toUpperCase() || "F"}
               </div>
-
-          <button
-                onClick={handleLogout}
-                className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-700 rounded-md"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-          </button>
+              <div className="flex flex-col">
+                <span className="font-semibold">Faculty User</span>
+                <span className="text-xs text-gray-400">{user?.email}</span>
+              </div>
             </div>
+          <button
+              onClick={handleLogout}
+              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-800 rounded-md"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+          </button>
           </div>
 
           {/* Mobile user info and logout */}
           <div className="md:hidden border-t border-gray-800 p-4 mt-4">
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center p-2 rounded-md">
-                <Shield className="h-6 w-6 mr-3 text-blue-400" />
-                <div className="flex flex-col">
-                  <span className="font-semibold">Faculty User</span>
-                  <span className="text-xs text-gray-400">{user?.email}</span>
-                </div>
+            <div className="flex items-center mb-3">
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
+                {user?.email?.charAt(0).toUpperCase() || "F"}
               </div>
-
+              <div className="flex flex-col">
+                <span className="font-semibold">Faculty User</span>
+                <span className="text-xs text-gray-400">{user?.email}</span>
+              </div>
+            </div>
           <button
-                onClick={handleLogout}
-                className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-700 rounded-md"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+              onClick={handleLogout}
+              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-800 rounded-md"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
           </button>
             </div>
           </div>
-        </div>
 
         {/* Main content area */}
-        <div className="flex-1 overflow-auto w-full h-full p-2 md:p-4">{renderActiveSection()}</div>
-      </div>
+        <div className="flex-1 overflow-auto w-full h-full bg-gray-900 p-4">
+          {renderActiveSection()}
+        </div>
+    </div>
     </div>
   )
 }

@@ -354,8 +354,8 @@ const Scheduler = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Class Schedule</h1>
-        <p className="text-muted-foreground">Manage assignments and exams for your courses</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Class Schedule</h1>
+        <p className="text-gray-200">Manage assignments and exams for your courses</p>
       </div>
 
       <Tabs defaultValue="assignments" className="flex-1">
@@ -371,8 +371,8 @@ const Scheduler = () => {
         {/* Assignments Tab */}
         <TabsContent value="assignments" className="flex-1 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-900 text-white">
-              <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <Card className="bg-gray-800 text-white border-none">
+              <CardHeader className="bg-gray-800 pb-3 pt-5">
                 <CardTitle>Schedule Assignment</CardTitle>
               </CardHeader>
               <CardContent>
@@ -386,7 +386,7 @@ const Scheduler = () => {
                       value={assignmentForm.title}
                       onChange={handleAssignmentChange}
                       placeholder="Assignment Title"
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-gray-800 border-gray-600 text-white"
                       required
                     />
                   </div>
@@ -400,7 +400,7 @@ const Scheduler = () => {
                       value={assignmentForm.course_code}
                       onChange={handleAssignmentChange}
                       placeholder="e.g. CS101"
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-gray-800 border-gray-600 text-white"
                       required
                     />
                   </div>
@@ -485,8 +485,8 @@ const Scheduler = () => {
               </CardContent>
             </Card>
             
-            <Card className="bg-gray-900 text-white">
-              <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <Card className="bg-gray-800 text-white border-none">
+              <CardHeader className="bg-gray-800 pb-3 pt-5">
                 <CardTitle>Scheduled Assignments</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -537,8 +537,8 @@ const Scheduler = () => {
         {/* Exams Tab */}
         <TabsContent value="exams" className="flex-1 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-900 text-white">
-              <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <Card className="bg-gray-800 text-white border-none">
+              <CardHeader className="bg-gray-800 pb-3 pt-5">
                 <CardTitle>Schedule Exam</CardTitle>
               </CardHeader>
               <CardContent>
@@ -666,8 +666,8 @@ const Scheduler = () => {
               </CardContent>
             </Card>
             
-            <Card className="bg-gray-900 text-white">
-              <CardHeader className="bg-gray-900 pb-3 pt-5">
+            <Card className="bg-gray-800 text-white border-none">
+              <CardHeader className="bg-gray-800 pb-3 pt-5">
                 <CardTitle>Scheduled Exams</CardTitle>
               </CardHeader>
               <CardContent className="p-0">

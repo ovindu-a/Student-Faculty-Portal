@@ -9,12 +9,12 @@ export default defineConfig({
       origin: true,  // This allows all origins
       credentials: true
     },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8008',
-        changeOrigin: true,
-        secure: false
-      }
-    }
+    // proxy: {
+    //   '/api': {
+    //     target: 'http://localhost:8008',
+    //     changeOrigin: true,
+    //     secure: false
+    //   }
+    // }
   }
 })

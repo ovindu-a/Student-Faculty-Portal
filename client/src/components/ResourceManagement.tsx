@@ -13,6 +13,7 @@ import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
 import axios from "axios"
+import API_CONFIG from "../lib/config"
 
 // Simple Select Component
 const Select = ({
@@ -346,7 +347,7 @@ const AvailableResources = () => {
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8010/get-resources")
+        const response = await axios.get(API_CONFIG.RESOURCES.ALL)
         const data = response.data
 
         // Optional: transform keys if needed
@@ -382,7 +383,7 @@ const AvailableResources = () => {
 useEffect(() => {
   const fetchData = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8010/get-bookings");
+      const response = await axios.get(API_CONFIG.RESOURCES.BOOKINGS);
       const rawData = response.data;
 
       const formattedBookings: Booking[] = rawData.map((b: any) => {
@@ -427,7 +428,7 @@ useEffect(() => {
   const [user, setUser] = useState<User | null>(null);
   const fetchUser = async (): Promise<User | null> => {
     try {
-      const response = await fetch("http://localhost:8100/user", {
+      const response = await fetch(API_CONFIG.AUTH.USER, {
         credentials: "include",
       });
 
@@ -470,7 +471,7 @@ const handleConfirmBooking = async () => {
   };
   console.log(bookingData)
   try {
-    const response = await fetch("http://127.0.0.1:8010/create-booking", {
+    const response = await fetch(API_CONFIG.RESOURCES.CREATE_BOOKING, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -657,7 +658,7 @@ const BookedResources = () => {
 
   const fetchUser = async (): Promise<User | null> => {
     try {
-      const response = await fetch("http://localhost:8100/user", {
+      const response = await fetch(API_CONFIG.AUTH.USER, {
         credentials: "include",
       });
 
@@ -687,7 +688,7 @@ const BookedResources = () => {
 
         console.log("Sending user ID:", user.id);
 
-        const response = await axios.get("http://127.0.0.1:8010/get-bookings-user", {
+        const response = await axios.get(API_CONFIG.RESOURCES.USER_BOOKINGS, {
           params: { userid: user.id },
         });
 
@@ -768,7 +769,7 @@ const ResourceManagement = () => {
 useEffect(() => {
     const fetchResources = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8010/get-resources")
+        const response = await axios.get(API_CONFIG.RESOURCES.ALL)
         const data = response.data
 
         // Optional: transform keys if needed

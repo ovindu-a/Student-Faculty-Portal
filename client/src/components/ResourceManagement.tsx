@@ -6,14 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import { CalendarIcon, Filter, Plus, Edit, Trash2, Clock, MapPin, XCircle, Search } from "lucide-react"
+import { CalendarIcon, Filter, Plus, Edit, Trash2, Clock, Search } from "lucide-react"
 import { Badge } from "./ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "./ui/dialog"
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
-import { Checkbox } from "./ui/checkbox"
 import axios from "axios"
-import API_CONFIG from "../lib/config"
 
 // Simple Select Component
 const Select = ({
@@ -30,7 +28,7 @@ const Select = ({
   <select
     value={value}
     onChange={(e) => onValueChange(e.target.value)}
-    className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${className}`}
+    className={`flex h-10 w-full rounded-md border border-gray-700 px-3 py-2 text-sm focus:outline-none ${className}`}
   >
     {children}
   </select>
@@ -51,16 +49,42 @@ interface Resource {
   name: string
   type: string
   capacity: number
+  location?: string
+  status?: "available" | "under_maintenance" | "restricted"
+  maintenanceNotes?: string
+  maintenancePersons?: string[]
+  lastMaintenance?: string
+  nextMaintenance?: string
+  maintained?: string
+  accessibility?: string[]
 }
 
 // Booking interface
-type Booking = {
-  id: number
-  bookedBy: string
+interface Booking {
+  id: string
+  resourceId?: string
   resourceName: string
+  userId?: string
+  userName?: string
   date: string
   startTime: string
   endTime: string
+  purpose?: string
+  status?: "confirmed" | "cancelled" | "pending"
+  location?: string
+  resource?: Resource
+  createdAt?: string
+  bookedBy?: string
+}
+
+// First, let's add a Person interface to match your API response
+interface Person {
+  id: number
+  created_at: string
+  name: string
+  occupation: string
+  contact_number: string
+  resource_assigned: string | null
 }
 
 // Mock data for resources
@@ -75,28 +99,26 @@ const mockResources: Resource[] = [
     id: "2",
     name: "Lecture Hall 101",
     type: "Auditorium",
-    capacity: 120
+    capacity: 120,
   },
   {
     id: "3",
     name: "Conference Room B",
     type: "Room",
-    capacity: 15
+    capacity: 15,
   },
   {
     id: "4",
     name: "University Van",
     type: "Vehicle",
-    capacity: 8
+    capacity: 8,
   },
   {
     id: "5",
     name: "Study Room 3",
     type: "Room",
-    capacity: 6
+    capacity: 6,
   },
-
-
 ]
 
 // Mock data for bookings
@@ -143,7 +165,7 @@ const mockBookings: Booking[] = [
 ]
 
 // Time slots for the calendar view
-const generateTimeSlots = (start: string, end: string, interval: number = 30) => {
+const generateTimeSlots = (start: string, end: string, interval = 30) => {
   const slots = []
   let [hour, minute] = start.split(":" as const).map(Number)
   const [endHour, endMinute] = end.split(":" as const).map(Number)
@@ -173,17 +195,17 @@ const CalendarDay = ({
   onBookResource: (resource: Resource, timeSlot: string) => void
 }) => {
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div className="border border-gray-700 rounded-md overflow-hidden">
       <div className="bg-gray-800 text-white p-3 font-medium">
         {new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border-r text-left">Resource</th>
+            <tr className="bg-gray-800 text-gray-200">
+              <th className="p-2 border-r border-gray-700 text-left">Resource</th>
               {timeSlots.map((slot) => (
-                <th key={slot} className="p-2 border-r text-center min-w-[60px] text-xs">
+                <th key={slot} className="p-2 border-r border-gray-700 text-center min-w-[60px] text-xs">
                   {slot}
                 </th>
               ))}
@@ -191,30 +213,39 @@ const CalendarDay = ({
           </thead>
           <tbody>
             {resources.map((resource) => (
-              <tr key={resource.id} className="border-t">
-                <td className="p-2 border-r">
-                  <div className="font-medium">{resource.name}</div>
-                  <div className="text-xs text-gray-500">{resource.location}</div>
+              <tr key={resource.id} className="border-t border-gray-700">
+                <td className="p-2 border-r border-gray-700">
+                  <div className="font-medium text-white">{resource.name}</div>
+                  <div className="text-xs text-gray-400">{resource.location ?? "No location specified"}</div>
                 </td>
                 {timeSlots.map((slot) => {
                   const booking = bookings.find(
+                    (b) =>
+                      b.resource?.id === resource.id &&
+                      b.date === date &&
+                      b.startTime <= slot &&
+                      b.endTime > slot &&
+                      b.status === "confirmed",
+                  )
+
+                  const isBooked =
+                    !!booking ||
+                    bookings.some(
                       (b) =>
-                        b.resource?.id === resource.id &&
+                        b.resourceId === resource.id &&
                         b.date === date &&
                         b.startTime <= slot &&
                         b.endTime > slot &&
-                        b.status === "confirmed"
-                  )
-
-                  const isBooked = !!booking
+                        b.status === "confirmed",
+                    )
                   const isUnderMaintenance = resource.status === "under_maintenance"
 
-                  const cellClass = `p-2 border-r text-center text-xs ${
+                  const cellClass = `p-2 border-r border-gray-700 text-center text-xs ${
                     isBooked
-                      ? "bg-red-100 text-red-600 font-medium"
+                      ? "bg-red-900 text-red-300 font-medium"
                       : isUnderMaintenance
-                      ? "bg-yellow-100 text-yellow-600 font-medium"
-                      : "bg-green-100 hover:bg-green-200 text-green-600 font-medium cursor-pointer"
+                        ? "bg-yellow-900 text-yellow-300 font-medium"
+                        : "bg-green-900 hover:bg-green-800 text-green-300 font-medium cursor-pointer"
                   }`
 
                   return (
@@ -239,101 +270,22 @@ const CalendarDay = ({
     </div>
   )
 }
-// const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
-
-// // Calendar day component
-// const CalendarDay = ({
-//   date,
-//   resources,
-//   bookings,
-//   onBookResource,
-// }: {
-//   date: string
-//   resources: Resource[]
-//   bookings: Booking[]
-//   onBookResource: (resource: Resource, timeSlot: string) => void
-// }) => {
-//   return (
-//     <div className="border rounded-md overflow-hidden">
-//       <div className="bg-gray-800 text-white p-3 font-medium">
-//         {new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-//       </div>
-//       <div className="overflow-x-auto">
-//         <table className="w-full">
-//           <thead>
-//             <tr className="bg-gray-100">
-//               <th className="p-2 border-r text-left">Resource</th>
-//               {timeSlots.map((slot) => (
-//                 <th key={slot} className="p-2 border-r text-center min-w-[80px]">
-//                   {slot}
-//                 </th>
-//               ))}
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {resources.map((resource) => (
-//               <tr key={resource.id} className="border-t">
-//                 <td className="p-2 border-r">
-//                   <div className="font-medium">{resource.name}</div>
-//                   <div className="text-xs text-gray-500">{resource.location}</div>
-//                 </td>
-//                 {timeSlots.map((slot) => {
-//                   // Check if this slot is booked for this resource
-//                   const isBooked = bookings.some(
-//                     (booking) =>
-//                       booking.resourceId === resource.id &&
-//                       booking.date === date &&
-//                       booking.startTime <= slot &&
-//                       booking.endTime > slot &&
-//                       booking.status === "confirmed",
-//                   )
-
-//                   // Check if resource is under maintenance
-//                   const isUnderMaintenance = resource.status === "under_maintenance"
-
-//                   let cellClass = "p-2 border-r text-center cursor-pointer"
-//                   if (isBooked) {
-//                     cellClass += " bg-red-100"
-//                   } else if (isUnderMaintenance) {
-//                     cellClass += " bg-yellow-100"
-//                   } else {
-//                     cellClass += " bg-green-100 hover:bg-green-200"
-//                   }
-
-//                   return (
-//                     <td
-//                       key={`${resource.id}-${slot}`}
-//                       className={cellClass}
-//                       onClick={() => {
-//                         if (!isBooked && !isUnderMaintenance) {
-//                           onBookResource(resource, slot)
-//                         }
-//                       }}
-//                     >
-//                       {isBooked ? (
-//                         <span className="text-xs font-medium text-red-600">Booked</span>
-//                       ) : isUnderMaintenance ? (
-//                         <span className="text-xs font-medium text-yellow-600">Maintenance</span>
-//                       ) : (
-//                         <span className="text-xs font-medium text-green-600">Available</span>
-//                       )}
-//                     </td>
-//                   )
-//                 })}
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   )
-// }
 
 // Available Resources component
 const AvailableResources = () => {
+  const getTodayDateString = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, "0")
+    const day = String(today.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
-  const [bookings,setBookings] = useState<Booking[]>([])
-  const [selectedDate, setSelectedDate] = useState<string>("2025-05-19")
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString())
   const [resourceType, setResourceType] = useState<string>("all")
   const [capacity, setCapacity] = useState<string>("all")
   const [location, setLocation] = useState<string>("all")
@@ -342,12 +294,12 @@ const AvailableResources = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("")
   const [bookingDuration, setBookingDuration] = useState<string>("1")
   const [bookingPurpose, setBookingPurpose] = useState<string>("")
-
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const response = await axios.get(API_CONFIG.RESOURCES.ALL)
+        const response = await axios.get("http://127.0.0.1:8010/get-resources")
         const data = response.data
 
         // Optional: transform keys if needed
@@ -377,129 +329,114 @@ const AvailableResources = () => {
       if (max && (resource.capacity < min || resource.capacity > max)) return false
       if (!max && resource.capacity < min) return false
     }
-    if (location !== "all" && !resource.location.includes(location)) return false
+    if (location !== "all" && !(resource.location ?? "").includes(location)) return false
     return true
   })
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const response = await axios.get(API_CONFIG.RESOURCES.BOOKINGS);
-      const rawData = response.data;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get("http://127.0.0.1:8010/get-bookings")
+        const rawData = response.data
 
-      const formattedBookings: Booking[] = rawData.map((b: any) => {
-        const resource = resources.find((res) => res.name === b.resource_name);
+        const formattedBookings: Booking[] = rawData.map((b: any) => {
+          const resource = resources.find((res) => res.name === b.resource_name)
 
-        return {
-          id: b.id,
-          date: b.booking_on,
-          startTime: b.booking_starttime.slice(0, 5),
-          endTime: b.booking_endtime.slice(0, 5),
-          status: "confirmed",
-          resource, // attach full resource object if needed
-        };
-      });
+          return {
+            id: b.id,
+            date: b.booking_on,
+            startTime: b.booking_starttime.slice(0, 5),
+            endTime: b.booking_endtime.slice(0, 5),
+            status: "confirmed",
+            resource, // attach full resource object if needed
+          }
+        })
 
-      setBookings(formattedBookings);
-      setLoading(false);
-    } catch (err) {
-      console.error("Failed to fetch bookings:", err);
-      setError("Failed to load bookings");
-      setLoading(false);
+        setBookings(formattedBookings)
+        setLoading(false)
+      } catch (err) {
+        console.error("Failed to fetch bookings:", err)
+        setError("Failed to load bookings")
+        setLoading(false)
+      }
     }
-  };
 
-  fetchData();
-}, [resources]); // make sure this runs after `resources` is loaded
-
-
+    fetchData()
+  }, [resources]) // make sure this runs after `resources` is loaded
 
   // Get unique locations for the filter
   // const locations = [...new Set(resources.map((r) => r.location.split(",")[0].trim()))]
 
   // Handle booking a resource
   const handleBookResource = (resource: Resource, timeSlot: string) => {
-    
     setSelectedResource(resource)
     setSelectedTimeSlot(timeSlot)
     setShowBookingDialog(true)
-
-    
   }
-  const [user, setUser] = useState<User | null>(null);
-  const fetchUser = async (): Promise<User | null> => {
-    try {
-      const response = await fetch(API_CONFIG.AUTH.USER, {
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Authentication failed");
-      }
-
-      const userData: User = await response.json();
-      setUser(userData);
-      return userData;
-    } catch (err) {
-      console.log("Error in getting user:", err);
-      return null;
-    }
-  };
 
   // Handle confirming a booking
-const handleConfirmBooking = async () => {
-  const user = await fetchUser();
-  if (!user || !user.id) {
-    console.error("User not authenticated");
-    return;
-  }
-
-  // Format date as YYYY-MM-DD
-  const formattedDate = new Date(selectedDate).toISOString().split("T")[0];
-
-  // Format time as HH:MM:SS
-  const formatTime = (time: string): string => {
-    const [hour, minute] = time.split(":");
-    return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
-  };
-
-  const bookingData = {
-    booked_by: user.id,
-    resource_name: selectedResource.name,
-    start: formatTime(selectedTimeSlot),
-    end: formatTime(calculateEndTime(selectedTimeSlot, Number.parseInt(bookingDuration))),
-    booked_date: formattedDate,
-  };
-  console.log(bookingData)
-  try {
-    const response = await fetch(API_CONFIG.RESOURCES.CREATE_BOOKING, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(bookingData),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to create booking");
+  const handleConfirmBooking = async () => {
+    const user = await fetchUser()
+    if (!user || !user.id || !selectedResource) {
+      console.error("User not authenticated or resource not selected")
+      return
     }
 
-    const data = await response.json();
-    console.log("Booking confirmed:", data);
+    // Format date as YYYY-MM-DD
+    const formattedDate = new Date(selectedDate).toISOString().split("T")[0]
 
-    // Reset form state
-    setShowBookingDialog(false);
-    setSelectedResource(null);
-    setSelectedTimeSlot("");
-    setBookingDuration("1");
-    setBookingPurpose("");
-  } catch (error) {
-    console.error("Error booking resource:", error);
+    // Format time as HH:MM:SS
+    const formatTime = (time: string): string => {
+      const [hour, minute] = time.split(":")
+      return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`
+    }
+
+    const bookingData = {
+      booked_by: user.id,
+      resource_name: selectedResource.name,
+      start: formatTime(selectedTimeSlot),
+      end: formatTime(calculateEndTime(selectedTimeSlot, Number.parseInt(bookingDuration))),
+      booked_date: formattedDate,
+    }
+    console.log(bookingData)
+    try {
+      const response = await fetch("http://127.0.0.1:8010/create-booking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bookingData),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create booking")
+      }
+
+      const data = await response.json()
+      console.log("Booking confirmed:", data)
+
+      // Add this code to update the bookings state immediately
+      const newBooking: Booking = {
+        id: data.id || String(Date.now()),
+        resourceId: selectedResource.id,
+        resourceName: selectedResource.name,
+        date: selectedDate,
+        startTime: selectedTimeSlot,
+        endTime: calculateEndTime(selectedTimeSlot, Number.parseInt(bookingDuration)),
+        status: "confirmed",
+        resource: selectedResource,
+      }
+      setBookings((prevBookings) => [...prevBookings, newBooking])
+
+      // Reset form state
+      setShowBookingDialog(false)
+      setSelectedResource(null)
+      setSelectedTimeSlot("")
+      setBookingDuration("1")
+      setBookingPurpose("")
+    } catch (error) {
+      console.error("Error booking resource:", error)
+    }
   }
-};
-
-
-
-
 
   // Calculate end time based on start time and duration
   const calculateEndTime = (startTime: string, durationHours: number) => {
@@ -508,10 +445,29 @@ const handleConfirmBooking = async () => {
     return `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
   }
 
+  const fetchUser = async (): Promise<User | null> => {
+    try {
+      const response = await fetch("http://localhost:8100/user", {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Authentication failed")
+      }
+
+      const userData: User = await response.json()
+      setUser(userData)
+      return userData
+    } catch (err) {
+      console.log("Error in getting user:", err)
+      return null
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Filters Section */}
-      <Card className="bg-gray-900 text-white">
+      <Card className="bg-gray-800 border-gray-700 text-white">
         <CardHeader className="pb-3 pt-5">
           <CardTitle className="flex items-center">
             <Filter className="mr-2 h-5 w-5" />
@@ -521,7 +477,7 @@ const handleConfirmBooking = async () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label className="text-gray-300 mb-1 block">Resource Type</Label>
+              <Label className="text-gray-200 mb-1 block">Resource Type</Label>
               <Select
                 value={resourceType}
                 onValueChange={setResourceType}
@@ -529,13 +485,12 @@ const handleConfirmBooking = async () => {
               >
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="Lab">Lab</SelectItem>
-                <SelectItem value="Room">Room</SelectItem>
+                <SelectItem value="Room">Lecture Room</SelectItem>
                 <SelectItem value="Auditorium">Auditorium</SelectItem>
-                <SelectItem value="Vehicle">Vehicle</SelectItem>
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300 mb-1 block">Capacity</Label>
+              <Label className="text-gray-200 mb-1 block">Capacity</Label>
               <Select value={capacity} onValueChange={setCapacity} className="bg-gray-800 border-gray-700 text-white">
                 <SelectItem value="all">Any Capacity</SelectItem>
                 <SelectItem value="1-10">1-10 People</SelectItem>
@@ -545,7 +500,7 @@ const handleConfirmBooking = async () => {
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300 mb-1 block">Location</Label>
+              <Label className="text-gray-200 mb-1 block">Location</Label>
               <Select value={location} onValueChange={setLocation} className="bg-gray-800 border-gray-700 text-white">
                 <SelectItem value="all">All Locations</SelectItem>
                 {/* {locations.map((loc) => (
@@ -556,11 +511,12 @@ const handleConfirmBooking = async () => {
               </Select>
             </div>
             <div>
-              <Label className="text-gray-300 mb-1 block">Date</Label>
+              <Label className="text-gray-200 mb-1 block">Date</Label>
               <Input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                min={getTodayDateString()}
                 className="bg-gray-800 border-gray-700 text-white"
               />
             </div>
@@ -570,7 +526,7 @@ const handleConfirmBooking = async () => {
 
       {/* Calendar View */}
       <div className="space-y-4">
-        <h3 className="text-lg text-gray-200 font-medium">Resource Availability Calendar</h3>
+        <h3 className="text-lg text-gray-100 font-medium">Resource Availability Calendar</h3>
         <CalendarDay
           date={selectedDate}
           resources={filteredResources}
@@ -590,11 +546,11 @@ const handleConfirmBooking = async () => {
               <>
                 <div className="space-y-2">
                   <Label>Selected Resource</Label>
-                  <div className="p-3 bg-gray-100 rounded-md">
-                    <div className="font-medium">{selectedResource.name}</div>
-                    <div className="text-sm text-gray-500">{selectedResource.location}</div>
-                    <div className="text-sm mt-1">
-                      <span className="font-medium">Capacity:</span> {selectedResource.capacity} people
+                  <div className="p-3 bg-gray-800 border border-gray-700 rounded-md">
+                    <div className="font-medium text-white">{selectedResource.name}</div>
+                    <div className="text-sm text-gray-300">{selectedResource.location ?? "No location specified"}</div>
+                    <div className="text-sm mt-1 text-gray-300">
+                      <span className="font-medium text-white">Capacity:</span> {selectedResource.capacity} people
                     </div>
                   </div>
                 </div>
@@ -641,56 +597,54 @@ const handleConfirmBooking = async () => {
   )
 }
 
-
 type User = {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-};
-
+  id: string
+  email: string
+  name: string
+  role: string
+}
 
 const BookedResources = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   const fetchUser = async (): Promise<User | null> => {
     try {
-      const response = await fetch(API_CONFIG.AUTH.USER, {
+      const response = await fetch("http://localhost:8100/user", {
         credentials: "include",
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Authentication failed");
+        throw new Error("Authentication failed")
       }
 
-      const userData: User = await response.json();
-      setUser(userData);
-      return userData;
+      const userData: User = await response.json()
+      setUser(userData)
+      return userData
     } catch (err) {
-      console.log("Error in getting user:", err);
-      return null;
+      console.log("Error in getting user:", err)
+      return null
     }
-  };
+  }
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const user = await fetchUser();
+        const user = await fetchUser()
 
         if (!user) {
-          setError("User not authenticated");
-          setLoading(false);
-          return;
+          setError("User not authenticated")
+          setLoading(false)
+          return
         }
 
-        console.log("Sending user ID:", user.id);
+        console.log("Sending user ID:", user.id)
 
-        const response = await axios.get(API_CONFIG.RESOURCES.USER_BOOKINGS, {
+        const response = await axios.get("http://127.0.0.1:8010/get-bookings-user", {
           params: { userid: user.id },
-        });
+        })
 
         const formattedBookings: Booking[] = response.data.map((b: any) => ({
           id: b.id,
@@ -698,78 +652,319 @@ const BookedResources = () => {
           date: b.booking_on,
           startTime: b.booking_starttime.slice(0, 5), // "HH:mm"
           endTime: b.booking_endtime.slice(0, 5),
-        }));
+        }))
 
-        setBookings(formattedBookings);
-        setLoading(false);
+        setBookings(formattedBookings)
+        setLoading(false)
       } catch (err) {
-        console.error("Failed to fetch bookings:", err);
-        setError("Failed to load bookings");
-        setLoading(false);
+        console.error("Failed to fetch bookings:", err)
+        setError("Failed to load bookings")
+        setLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, []);
+    fetchData()
+  }, [])
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editBookingForm, setEditBookingForm] = useState({
+    id: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+  })
+  
+  const handleEditBooking = (booking: Booking) => {
+    setEditBookingForm({
+      id: booking.id,
+      date: booking.date,
+      startTime: formatTimeToHHMM(booking.startTime),
+      endTime: formatTimeToHHMM(booking.endTime),
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleDeleteBooking = async (bookingId: string) => {
+    try {
+      const response = await fetch("http://127.0.0.1:8010/delete-booking", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: bookingId }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.status === "success") {
+        setBookings((prev) => prev.filter((b) => b.id !== bookingId))
+      } else {
+        throw new Error(data.message || "Failed to delete booking")
+      }
+    } catch (error: unknown) {
+      console.error("Delete failed:", error)
+      alert("Error deleting booking: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
+  }
+  
+  const formatTimeToHHMM = (timeString: string): string => {
+    if (!timeString) return ""
+    return timeString.slice(0, 5)
+  }
+  
+  const normalizeBooking = (booking: any): Booking => ({
+    id: booking.id,
+    createdAt: booking.created_at,
+    bookedBy: booking.booked_by,
+    resourceName: booking.resource_name,
+    date: booking.booking_on,
+    startTime: formatTimeToHHMM(booking.start_time),
+    endTime: formatTimeToHHMM(booking.end_time),
+  })
+
+  const handleSaveEditedBooking = async () => {
+    const body = {
+      ...editBookingForm,
+      date: formatDateToYYYYMMDD(editBookingForm.date),
+    }
+    try {
+      const response = await fetch("http://127.0.0.1:8010/booking-update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update booking")
+      }
+
+      const updated = await response.json()
+      const normalizedUpdated = normalizeBooking(updated)
+
+      setBookings(prev =>
+        prev.map(b => (b.id === normalizedUpdated.id ? normalizedUpdated : b))
+      )
+
+      setShowEditDialog(false)
+    } catch (error) {
+      console.error("Update failed:", error)
+      alert("Error updating booking")
+    }
+  }
+
+  const formatDateToYYYYMMDD = (date: string): string => {
+    const d = new Date(date)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  if (loading) return (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+  )
+  
+  if (error) return (
+    <div className="bg-red-900/20 border border-red-500/50 text-red-300 rounded-md p-4 flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+      </svg>
+      {error}
+    </div>
+  )
+
+  // Group bookings by date for better organization
+  const bookingsByDate = bookings.reduce((acc, booking) => {
+    const date = booking.date
+    if (!acc[date]) {
+      acc[date] = []
+    }
+    acc[date].push(booking)
+    return acc
+  }, {} as Record<string, Booking[]>)
+
+  // Sort dates in descending order (newest first)
+  const sortedDates = Object.keys(bookingsByDate).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  )
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Your Booked Resources</h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {bookings.length > 0 ? (
-          bookings.map((booking) => (
-            <Card key={booking.id} className="overflow-hidden">
-              <CardHeader className="pb-2 bg-gray-900 text-white">
-                <CardTitle className="text-base">{booking.resourceName}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                <div className="flex items-start">
-                  <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
-                  <span>
-                    {new Date(booking.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-500" />
-                  <span>
-                    {booking.startTime} - {booking.endTime}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <div className="col-span-2 p-8 text-center text-gray-500 border rounded-md">
-            You don't have any booked resources yet.
-          </div>
-        )}
+      <div className="flex justify-between items-center">
+        <h3 className="text-l font-medium text-white">Your Bookings</h3>
+        <span className="text-sm text-gray-400">{bookings.length} total bookings</span>
       </div>
-    </div>
-  );
-};
 
+      {bookings.length > 0 ? (
+        <div className="space-y-8">
+          {sortedDates.map(date => (
+            <div key={date} className="space-y-3">
+              <div className="flex items-center">
+                <div className="h-0.5 flex-grow bg-gray-800 mr-3"></div>
+                <h4 className="text-sm font-medium text-gray-400 flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-1.5" />
+                  {new Date(date).toLocaleDateString("en-US", {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </h4>
+                <div className="h-0.5 flex-grow bg-gray-800 ml-3"></div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {bookingsByDate[date].map((booking) => (
+                  <Card key={booking.id} className="overflow-hidden bg-gray-900 border border-gray-800 shadow-md hover:shadow-lg transition-all duration-200 hover:border-gray-700">
+                    <CardHeader className="bg-gray-800 border-b border-gray-700 pb-3">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-base text-white">
+                          {booking.resourceName}
+                        </CardTitle>
+                        <Badge variant="outline" className="bg-blue-900/20 text-blue-300 border-blue-500/30 text-xs">
+                          {booking.startTime} - {booking.endTime}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="pt-4">
+                      <div className="flex justify-between mb-4">
+                        <div className="flex items-center text-sm text-gray-400">
+                          <Clock className="h-4 w-4 mr-1.5 text-gray-500" />
+                          <span>{Math.round((new Date(`2000/01/01 ${booking.endTime}:00`).getTime() - 
+                                 new Date(`2000/01/01 ${booking.startTime}:00`).getTime()) / 1000 / 60 / 60 * 10) / 10} hours</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleEditBooking(booking)}
+                          variant="secondary"
+                          className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-100"
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteBooking(booking.id)}
+                          className="flex-1 bg-red-900/40 hover:bg-red-800/60 text-red-200 border border-red-800/30"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="border border-dashed border-gray-700 rounded-lg p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+            <CalendarIcon className="h-8 w-8 text-gray-500" />
+          </div>
+          <h4 className="text-lg font-medium text-gray-300 mb-1">No bookings found</h4>
+          <p className="text-gray-500 max-w-sm mx-auto">
+            You don't have any booked resources yet. Check the Available Resources tab to make a booking.
+          </p>
+        </div>
+      )}
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="bg-gray-900 border border-gray-800">
+          <DialogHeader className="border-b border-gray-800 pb-3">
+            <DialogTitle className="text-white">Edit Booking</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-date" className="text-gray-300">Booking Date</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editBookingForm.date}
+                  onChange={(e) => setEditBookingForm({ ...editBookingForm, date: e.target.value })}
+                  className="bg-gray-800 border-gray-700 text-gray-200 pl-10"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start" className="text-gray-300">Start Time</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                  <Input
+                    id="edit-start"
+                    type="time"
+                    value={editBookingForm.startTime}
+                    onChange={(e) => setEditBookingForm({ ...editBookingForm, startTime: e.target.value })}
+                    className="bg-gray-800 border-gray-700 text-gray-200 pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-end" className="text-gray-300">End Time</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                  <Input
+                    id="edit-end"
+                    type="time"
+                    value={editBookingForm.endTime}
+                    onChange={(e) => setEditBookingForm({ ...editBookingForm, endTime: e.target.value })}
+                    className="bg-gray-800 border-gray-700 text-gray-200 pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="border-t border-gray-800 pt-3">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEditedBooking}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
 
 // Resource Management component
 const ResourceManagement = () => {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [showAddResourceDialog, setShowAddResourceDialog] = useState<boolean>(false)
   const [showMaintenanceDialog, setShowMaintenanceDialog] = useState<boolean>(false)
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>("")
 
-useEffect(() => {
+  // Add these state variables at the beginning of the ResourceManagement component:
+
+  const [people, setPeople] = useState<Person[]>([])
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
+  const [selectedResourceId, setSelectedResourceId] = useState<string>("0") // Updated default value to be a non-empty string
+  const [showAssignmentDialog, setShowAssignmentDialog] = useState<boolean>(false)
+  const [assignmentNotes, setAssignmentNotes] = useState<string>("")
+
+  useEffect(() => {
     const fetchResources = async () => {
       try {
-        const response = await axios.get(API_CONFIG.RESOURCES.ALL)
+        const response = await axios.get("http://127.0.0.1:8010/get-resources")
         const data = response.data
 
         // Optional: transform keys if needed
@@ -779,7 +974,7 @@ useEffect(() => {
           type: r.resource_type,
           capacity: r.capacity,
           createdAt: r.created_at,
-          maintained:r.maintained_by
+          maintained: r.maintained_by,
         }))
 
         setResources(formattedResources)
@@ -792,8 +987,23 @@ useEffect(() => {
 
     fetchResources()
   }, [])
+
+  // Add this useEffect to fetch people data
+  useEffect(() => {
+    const fetchPeople = async () => {
+      try {
+        const response = await axios.get("http://127.0.0.1:8010/get-people")
+        setPeople(response.data)
+      } catch (error) {
+        console.error("Error fetching people:", error)
+      }
+    }
+
+    fetchPeople()
+  }, [])
+
   // New resource form state
-  const [newResource, setNewResource] = useState<Partial<Resource>>({
+  const [newResourceForm, setNewResourceForm] = useState<Partial<Resource>>({
     name: "",
     type: "Room",
     capacity: 0,
@@ -812,71 +1022,145 @@ useEffect(() => {
   })
 
   // Handle adding a new resource
-  const handleAddResource = () => {
-    // In a real app, this would make an API call to create the resource
-    const newResourceWithId = {
-      ...newResource,
-      id: `${resources.length + 1}`,
-      accessibility: newResource.accessibility || [],
-    } as Resource
+  const handleAddResource = async () => {
+    if (!newResourceForm.name || !newResourceForm.type || !newResourceForm.capacity) {
+      alert("Please fill in all required fields")
+      return
+    }
 
-    setResources([...resources, newResourceWithId])
-    setShowAddResourceDialog(false)
-    setNewResource({
-      name: "",
-      type: "Room",
-      capacity: 0,
-      location: "",
-      accessibility: [],
-      status: "available",
-    })
+    try {
+      const response = await fetch("http://127.0.0.1:8010/resource-insert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newResourceForm.name,
+          type: newResourceForm.type,
+          capacity: newResourceForm.capacity,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to insert resource")
+      }
+
+      const result = await response.json()
+
+      const newResourceWithId: Resource = {
+        id: `${resources.length + 1}`,
+        name: newResourceForm.name ?? "",
+        type: newResourceForm.type ?? "Room",
+        capacity: newResourceForm.capacity ?? 0,
+        accessibility: newResourceForm.accessibility ?? [],
+      }
+
+      setResources([...resources, newResourceWithId])
+      setShowAddResourceDialog(false)
+      setNewResourceForm({
+        name: "",
+        type: "Room",
+        capacity: 0,
+        location: "",
+        accessibility: [],
+        status: "available",
+      })
+    } catch (error: unknown) {
+      console.error("Error adding resource:", error)
+      alert("Error adding resource: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
   }
 
-  // Handle updating resource maintenance
-  const handleUpdateMaintenance = () => {
+  const handleEditResource = async (
+    resourceId: string,
+    updatedResource: {
+      name: string
+      type: string
+      capacity: number
+    },
+  ) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8010/resource-update/${resourceId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedResource),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update resource")
+      }
+
+      const result = await response.json()
+
+      setResources((prevResources) =>
+        prevResources.map((resource) => (resource.id === resourceId ? { ...resource, ...updatedResource } : resource)),
+      )
+    } catch (error: unknown) {
+      console.error("Error updating resource:", error)
+      alert("Error updating resource: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
+  }
+  // Handle updating resource assignment
+  const handleUpdateMaintenance = async () => {
     if (!selectedResource) return
 
-    // In a real app, this would make an API call to update the resource
-    const updatedResources = resources.map((resource) =>
-      resource.id === selectedResource.id
-        ? {
-            ...resource,
-            status: maintenanceForm.status as "available" | "under_maintenance" | "restricted",
-            maintenanceNotes: maintenanceForm.notes,
-            maintenancePersons: maintenanceForm.persons
-              ? maintenanceForm.persons.split(",").map((p) => p.trim())
-              : undefined,
-            lastMaintenance:
-              maintenanceForm.status === "available"
-                ? new Date().toISOString().split("T")[0]
-                : resource.lastMaintenance,
-            nextMaintenance: maintenanceForm.toDate,
-          }
-        : resource,
-    )
+    try {
+      // In a real app, this would make an API call to update the resource
+      const updatedResources = resources.map((resource) =>
+        resource.id === selectedResource.id
+          ? {
+              ...resource,
+              maintained: maintenanceForm.persons,
+              maintenanceNotes: maintenanceForm.notes,
+            }
+          : resource,
+      )
 
-    setResources(updatedResources)
-    setShowMaintenanceDialog(false)
+      setResources(updatedResources)
+      setShowMaintenanceDialog(false)
+
+      // This would be an API call in a real application
+      // await fetch(`http://127.0.0.1:8010/resource-assign/${selectedResource.id}`, {
+      //   method: "PUT",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     maintained_by: maintenanceForm.persons,
+      //     notes: maintenanceForm.notes
+      //   }),
+      // })
+    } catch (error) {
+      console.error("Error updating assignment:", error)
+      alert("Error updating assignment")
+    }
   }
 
-  // Handle opening the maintenance dialog
+  // Handle opening the assignment dialog
   const handleOpenMaintenanceDialog = (resource: Resource) => {
     setSelectedResource(resource)
     setMaintenanceForm({
-      status: resource.status,
+      status: "available", // This is less relevant for assignments but keeping for compatibility
       notes: resource.maintenanceNotes || "",
-      persons: resource.maintenancePersons?.join(", ") || "",
-      fromDate: new Date().toISOString().split("T")[0],
-      toDate: resource.nextMaintenance || "",
+      persons: resource.maintained || "",
+      fromDate: "", // No longer needed
+      toDate: "", // No longer needed
     })
     setShowMaintenanceDialog(true)
   }
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [resourceBeingEdited, setResourceBeingEdited] = useState<Resource | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    type: "",
+    capacity: 0,
+  })
 
   // Filter resources based on search query
   const filteredResources = resources.filter(
     (resource) =>
       resource.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      resource.type.toLowerCase().includes(searchQuery.toLowerCase())
+      resource.type.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   // Get status badge for a resource
@@ -893,6 +1177,59 @@ useEffect(() => {
     }
   }
 
+  const handleDeleteResource = async (id: string) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8010/resource-delete/${id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) {
+        throw new Error("Failed to delete resource")
+      }
+
+      setResources((prev) => prev.filter((resource) => resource.id !== id))
+    } catch (error) {
+      console.error("Delete error:", error)
+      alert("Error deleting resource.")
+    }
+  }
+
+  // Add these functions to handle assignment
+  const handleOpenAssignmentDialog = (person: Person) => {
+    setSelectedPerson(person)
+    // Make sure we're setting the correct resource ID from the person object
+    setSelectedResourceId(person.resource_assigned ? String(person.resource_assigned) : "0")
+    setAssignmentNotes("")
+    setShowAssignmentDialog(true)
+  }
+
+  const handleUpdateAssignment = async () => {
+    if (!selectedPerson) return
+
+    try {
+      // Make API call to assign the person to a resource
+      // Reverting to the original approach that was working before
+      const response = await fetch(
+        `http://127.0.0.1:8010/assign-people?person_id=${selectedPerson.id}&resource=${selectedResourceId || 0}`,
+        {
+          method: "PUT",
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to update assignment")
+      }
+
+      // Get the updated data from the server
+      const updatedPeopleResponse = await axios.get("http://127.0.0.1:8010/get-people")
+      setPeople(updatedPeopleResponse.data)
+
+      setShowAssignmentDialog(false)
+    } catch (error) {
+      console.error("Error updating assignment:", error)
+      alert("Error updating assignment")
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
@@ -902,74 +1239,124 @@ useEffect(() => {
 
       <Tabs defaultValue="available" className="flex-1">
         <TabsList className="bg-gray-800 border-b border-gray-700">
-          <TabsTrigger value="available" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            Available Resources
-          </TabsTrigger>
-          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            Booked Resources
-          </TabsTrigger>
-          <TabsTrigger value="management" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            Resource Management
-          </TabsTrigger>
-          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            Maintenance Dashboard
-          </TabsTrigger>
+          <TabsTrigger value="available" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Available Resources</TabsTrigger>
+          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Booked Resources</TabsTrigger>
+          <TabsTrigger value="management" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Resource Management</TabsTrigger>
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Maintenance Dashboard</TabsTrigger>
         </TabsList>
 
+        {/* Available */}
         <TabsContent value="available" className="mt-6 flex-1">
           <AvailableResources />
         </TabsContent>
 
+        {/* Booked */}
         <TabsContent value="booked" className="mt-6 flex-1">
           <BookedResources />
         </TabsContent>
 
+        {/* Management */}
         <TabsContent value="management" className="mt-6 flex-1">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Manage Resources</h3>
+              <h3 className="text-lg font-medium text-white">Manage Resources</h3>
               <Button onClick={() => setShowAddResourceDialog(true)}>
                 <Plus className="h-4 w-4 mr-1" /> Add New Resource
               </Button>
             </div>
 
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search resources..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 bg-gray-800 border-gray-700 text-white"
               />
             </div>
 
-            <div className="border rounded-md overflow-hidden">
+            <div className="border border-gray-700 rounded-md overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-100">
+                  <tr className="bg-gray-800 text-gray-200">
                     <th className="p-3 text-left">Name</th>
                     <th className="p-3 text-left">Type</th>
                     <th className="p-3 text-left">Capacity</th>
-                    {/* <th className="p-3 text-left">Location</th> */}
-                    {/* <th className="p-3 text-left">Status</th>
-                    <th className="p-3 text-left">Actions</th> */}
+                    <th className="p-3 text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredResources.map((resource) => (
-                    <tr key={resource.id} className="border-t hover:bg-gray-50">
-                      <td className="p-3">{resource.name}</td>
-                      <td className="p-3">{resource.type}</td>
-                      <td className="p-3">{resource.capacity}</td>
-                      {/* <td className="p-3">{resource.location}</td> */}
-                      {/* <td className="p-3">{getStatusBadge(resource.status)}</td> */}
+                    <tr key={resource.id} className="border-t border-gray-700 hover:bg-gray-700">
+                      <td className="p-3 text-white">{resource.name}</td>
+                      <td className="p-3 text-white">{resource.type}</td>
+                      <td className="p-3 text-white">{resource.capacity}</td>
                       <td className="p-3">
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setResourceBeingEdited(resource)
+                              setEditForm({ name: resource.name, type: resource.type, capacity: resource.capacity })
+                              setShowEditDialog(true)
+                            }}
+                          >
                             <Edit className="h-4 w-4" />
                             <span className="sr-only">Edit</span>
                           </Button>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          {showEditDialog && (
+                            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit Resource</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <Input
+                                    placeholder="Name"
+                                    value={editForm.name ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                  />
+                                  <Input
+                                    placeholder="Type"
+                                    value={editForm.type ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Capacity"
+                                    value={editForm.capacity ?? 0}
+                                    onChange={(e) => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
+                                  />
+                                </div>
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                  </DialogClose>
+                                  <Button
+                                    onClick={async () => {
+                                      if (resourceBeingEdited) {
+                                        await handleEditResource(resourceBeingEdited.id, {
+                                          name: editForm.name ?? "",
+                                          type: editForm.type ?? "Room",
+                                          capacity: editForm.capacity ?? 0,
+                                        })
+                                        setShowEditDialog(false)
+                                      }
+                                    }}
+                                  >
+                                    Save Changes
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-400 hover:text-red-300"
+                            onClick={() => handleDeleteResource(resource.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete</span>
                           </Button>
@@ -981,7 +1368,7 @@ useEffect(() => {
               </table>
 
               {filteredResources.length === 0 && (
-                <div className="p-8 text-center text-gray-500">No resources found matching your search.</div>
+                <div className="p-8 text-center text-gray-400">No resources found matching your search.</div>
               )}
             </div>
           </div>
@@ -998,92 +1385,37 @@ useEffect(() => {
                     <Label htmlFor="name">Resource Name *</Label>
                     <Input
                       id="name"
-                      placeholder="e.g. Computer Lab A"
-                      value={newResource.name}
-                      onChange={(e) => setNewResource({ ...newResource, name: e.target.value })}
-                      required
+                      value={newResourceForm.name ?? ""}
+                      onChange={(e) => setNewResourceForm({ ...newResourceForm, name: e.target.value })}
+                      className="bg-gray-800 border-gray-700 text-white"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="type">Resource Type *</Label>
                     <Select
-                      value={newResource.type}
-                      onValueChange={(value) => setNewResource({ ...newResource, type: value })}
+                      value={newResourceForm.type ?? "Room"}
+                      onValueChange={(value) => setNewResourceForm({ ...newResourceForm, type: value })}
+                      className="bg-gray-800 border-gray-700 text-white"
                     >
                       <SelectItem value="Lab">Lab</SelectItem>
-                      <SelectItem value="Room">Room</SelectItem>
+                      <SelectItem value="Room">Lecture Room</SelectItem>
                       <SelectItem value="Auditorium">Auditorium</SelectItem>
-                      <SelectItem value="Vehicle">Vehicle</SelectItem>
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="capacity">Capacity *</Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      placeholder="e.g. 30"
-                      value={newResource.capacity || ""}
-                      onChange={(e) => setNewResource({ ...newResource, capacity: Number.parseInt(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  {/* <div className="space-y-2">
-                    <Label htmlFor="location">Location *</Label>
-                    <Input
-                      id="location"
-                      placeholder="e.g. Main Building, Floor 2"
-                      value={newResource.location}
-                      onChange={(e) => setNewResource({ ...newResource, location: e.target.value })}
-                      required
-                    /> */}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="capacity">Capacity *</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    value={newResourceForm.capacity}
+                    onChange={(e) =>
+                      setNewResourceForm({ ...newResourceForm, capacity: Number.parseInt(e.target.value) })
+                    }
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
                 </div>
-                {/* <div className="space-y-2">
-                  <Label>Accessibility Options</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="wheelchair"
-                        checked={newResource.accessibility?.includes("Wheelchair Accessible")}
-                        onCheckedChange={(checked) => {
-                          const accessibility = [...(newResource.accessibility || [])]
-                          if (checked) {
-                            accessibility.push("Wheelchair Accessible")
-                          } else {
-                            const index = accessibility.indexOf("Wheelchair Accessible")
-                            if (index !== -1) accessibility.splice(index, 1)
-                          }
-                          setNewResource({ ...newResource, accessibility })
-                        }}
-                      />
-                      <Label htmlFor="wheelchair" className="font-normal">
-                        Wheelchair Accessible
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="hearing"
-                        checked={newResource.accessibility?.includes("Hearing Loop")}
-                        onCheckedChange={(checked) => {
-                          const accessibility = [...(newResource.accessibility || [])]
-                          if (checked) {
-                            accessibility.push("Hearing Loop")
-                          } else {
-                            const index = accessibility.indexOf("Hearing Loop")
-                            if (index !== -1) accessibility.splice(index, 1)
-                          }
-                          setNewResource({ ...newResource, accessibility })
-                        }}
-                      />
-                      <Label htmlFor="hearing" className="font-normal">
-                        Hearing Loop
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-              </div> */}
+              </div>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
@@ -1094,122 +1426,86 @@ useEffect(() => {
           </Dialog>
         </TabsContent>
 
+        {/* People Assignments */}
         <TabsContent value="maintenance" className="mt-6 flex-1">
           <div className="space-y-6">
-            <h3 className="text-lg font-medium">Maintenance Dashboard</h3>
+            <h3 className="text-lg font-medium text-white">People Assignments</h3>
 
-            <div className="border rounded-md overflow-hidden">
+            <div className="border border-gray-700 rounded-md overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-100">
-                    <th className="p-3 text-left">Resource Name</th>
-                    <th className="p-3 text-left">Assigned to</th>
-                    {/* <th className="p-3 text-left">Notes</th> */}
+                  <tr className="bg-gray-800 text-gray-200">
+                    <th className="p-3 text-left">Person Name</th>
+                    <th className="p-3 text-left">Occupation</th>
+                    <th className="p-3 text-left">Contact</th>
+                    <th className="p-3 text-left">Assigned Resource</th>
                     <th className="p-3 text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {resources.map((resource) => (
-                    <tr key={resource.id} className="border-t hover:bg-gray-50">
-                      <td className="p-3">
-                        <div className="font-medium">{resource.name}</div>
-              
-                      </td>
-                      <td className="p-3">{resource.maintained}</td>
-
-                      {/* <td className="p-3">
-                        {resource.maintenanceNotes ? (
-                          <div className="max-w-[200px] truncate" title={resource.maintenanceNotes}>
-                            {resource.maintenanceNotes}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">No notes</span>
-                        )}
-                      </td> */}
-                      <td className="p-3">
-                        <Button variant="outline" size="sm" onClick={() => handleOpenMaintenanceDialog(resource)}>
-                          Manage
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {people.map((person) => {
+                    const assignedResource = resources.find((r) => r.id === person.resource_assigned)
+                    return (
+                      <tr key={person.id} className="border-t border-gray-700 hover:bg-gray-700">
+                        <td className="p-3 text-white">{person.name}</td>
+                        <td className="p-3 text-white">{person.occupation}</td>
+                        <td className="p-3 text-white">{person.contact_number}</td>
+                        <td className="p-3 text-white">{assignedResource ? assignedResource.name : "None"}</td>
+                        <td className="p-3">
+                          <Button variant="outline" size="sm" onClick={() => handleOpenAssignmentDialog(person)}>
+                            Assign
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
+
+              {people.length === 0 && <div className="p-8 text-center text-gray-400">No people found.</div>}
             </div>
           </div>
 
-          {/* Maintenance Dialog */}
-          <Dialog open={showMaintenanceDialog} onOpenChange={setShowMaintenanceDialog}>
+          {/* Assignment Dialog */}
+          <Dialog open={showAssignmentDialog} onOpenChange={setShowAssignmentDialog}>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
-                <DialogTitle>{selectedResource ? `Maintenance: ${selectedResource.name}` : "Maintenance"}</DialogTitle>
+                <DialogTitle>
+                  {selectedPerson ? `Assign Resource to: ${selectedPerson.name}` : "Resource Assignment"}
+                </DialogTitle>
               </DialogHeader>
-              {selectedResource && (
+              {selectedPerson && (
                 <div className="space-y-4 py-4">
-                  <div className="p-3 bg-gray-100 rounded-md">
-                    <div className="font-medium">{selectedResource.name}</div>
-                    <div className="text-sm text-gray-500">{selectedResource.location}</div>
-                    <div className="text-sm mt-1">
-                      <span className="font-medium">Type:</span> {selectedResource.type}
-                    </div>
+                  <div className="p-3 bg-gray-800 border border-gray-700 rounded-md">
+                    <div className="font-medium text-white">{selectedPerson.name}</div>
+                    <div className="text-sm text-gray-300">Occupation: {selectedPerson.occupation}</div>
+                    <div className="text-sm text-gray-300">Contact: {selectedPerson.contact_number}</div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="status">Maintenance Status</Label>
+                    <Label htmlFor="resources">Assign Resource</Label>
                     <Select
-                      value={maintenanceForm.status}
-                      onValueChange={(value) => setMaintenanceForm({ ...maintenanceForm, status: value })}
+                      value={selectedResourceId}
+                      onValueChange={setSelectedResourceId}
+                      className="bg-gray-800 border-gray-700 text-white"
                     >
-                      <SelectItem value="available">Available</SelectItem>
-                      <SelectItem value="under_maintenance">Under Maintenance</SelectItem>
-                      <SelectItem value="restricted">Restricted Use</SelectItem>
+                      <SelectItem value="0">None</SelectItem>
+                      {resources.map((resource) => (
+                        <SelectItem key={resource.id} value={resource.id}>
+                          {resource.name} ({resource.type})
+                        </SelectItem>
+                      ))}
                     </Select>
                   </div>
 
-                  {maintenanceForm.status !== "available" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="fromDate">From Date</Label>
-                          <Input
-                            id="fromDate"
-                            type="date"
-                            value={maintenanceForm.fromDate}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, fromDate: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="toDate">To Date</Label>
-                          <Input
-                            id="toDate"
-                            type="date"
-                            value={maintenanceForm.toDate}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, toDate: e.target.value })}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="persons">Maintenance Persons</Label>
-                        <Input
-                          id="persons"
-                          placeholder="e.g. John Doe, Jane Smith"
-                          value={maintenanceForm.persons}
-                          onChange={(e) => setMaintenanceForm({ ...maintenanceForm, persons: e.target.value })}
-                        />
-                        <p className="text-xs text-gray-500">Separate multiple names with commas</p>
-                      </div>
-                    </>
-                  )}
-
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Maintenance Notes</Label>
+                    <Label htmlFor="notes">Assignment Notes</Label>
                     <Textarea
-                      id="notes"
-                      placeholder="Enter maintenance details or restrictions"
-                      value={maintenanceForm.notes}
-                      onChange={(e) => setMaintenanceForm({ ...maintenanceForm, notes: e.target.value })}
+                      placeholder="Enter assignment details or special instructions"
+                      value={assignmentNotes}
+                      onChange={(e) => setAssignmentNotes(e.target.value)}
                       rows={4}
+                      className="bg-gray-800 border-gray-700 text-white"
                     />
                   </div>
                 </div>
@@ -1218,7 +1514,7 @@ useEffect(() => {
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button onClick={handleUpdateMaintenance}>Update Maintenance</Button>
+                <Button onClick={handleUpdateAssignment}>Update Assignment</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1229,11 +1525,3 @@ useEffect(() => {
 }
 
 export default ResourceManagement
-function setLoading(arg0: boolean) {
-  throw new Error("Function not implemented.")
-}
-
-function setError(arg0: string) {
-  throw new Error("Function not implemented.")
-}
-

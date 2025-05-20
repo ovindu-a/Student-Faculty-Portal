@@ -12,7 +12,8 @@ const BASE_URLS = {
     ATTENDANCE: 'https://attendance.campus-management.ovindu.com',
     NOTIFICATIONS: 'https://notifications.campus-management.ovindu.com',
     SCHEDULE: 'https://schedule.campus-management.ovindu.com',
-    RESOURCES: 'https://resources.campus-management.ovindu.com'
+    RESOURCES: 'https://resources.campus-management.ovindu.com',
+    STUDENT: 'https://student.campus-management.ovindu.com'
   },
 
   // Development URLs (matching your Docker ports)
@@ -27,7 +28,8 @@ const BASE_URLS = {
     ATTENDANCE: 'http://localhost:8006',
     NOTIFICATIONS: 'http://localhost:8007',
     SCHEDULE: 'http://localhost:8008',
-    RESOURCES: 'http://localhost:8010'
+    RESOURCES: 'http://localhost:8010',
+    STUDENT: 'http://localhost:8020'
   }
 };
 
@@ -59,8 +61,8 @@ export const API_CONFIG = {
 
   // Student course profile endpoints
   STUDENT_COURSES: {
-    PROFILE: `http://localhost:8020/users`,  // Base URL, will append /{userId}/course-profile in component
-    RESULTS: `http://localhost:8020/users`,  // Base URL, will append /{userId}/course-results in component
+    PROFILE: `${urls.STUDENT}/users`,  // Base URL, will append /{userId}/course-profile in component
+    RESULTS: `${urls.STUDENT}/users`,  // Base URL, will append /{userId}/course-results in component
   },
 
   // Resource endpoints
@@ -112,8 +114,8 @@ export const API_CONFIG = {
 
   // Recommendations endpoints
   RECOMMENDATIONS: {
-    STUDY: `http://localhost:8020/recommendations/study`,  // Base URL, will append /{userId}/ in component
-    COURSE: `http://localhost:8020/recommendations/course`,  // Base URL, will append /{userId}/ in component
+    STUDY: `${urls.STUDENT}/recommendations/study`,  // Base URL, will append /{userId}/ in component
+    COURSE: `${urls.STUDENT}/recommendations/course`,  // Base URL, will append /{userId}/ in component
   },
 };
 

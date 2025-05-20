@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import Scheduler from "./Scheduler"
 import ResourceManagement from "./ResourceManagement"
-import CourseManagement from "./CourseManagement"
+import StudentCourseManagement from "./StudentCourseManagement"
 
 // Simple Select Component
 const Select = ({
@@ -1244,7 +1244,7 @@ const StudentDashboard: React.FC = () => {
       case "grades":
         return <Grades />
       case "course-management":
-        return <CourseManagement />
+        return <StudentCourseManagement />
       case "resources":
         return <ResourceManagement />
       default:

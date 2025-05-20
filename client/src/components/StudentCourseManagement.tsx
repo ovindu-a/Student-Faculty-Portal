@@ -19,6 +19,7 @@ import {
   Book,
   Calendar,
 } from "lucide-react";
+import API_CONFIG from "../lib/config";
 
 // Types for API response
 interface StudentInfo {
@@ -151,7 +152,7 @@ const StudentCourseManagement = () => {
         const userIdFromLogin = localStorage.getItem("user_id") || "ddd3eb31-c06f-45ab-b464-632040419d82";
 
         const response = await axios.get(
-          `http://localhost:8020/users/${userIdFromLogin}/course-profile`
+          `${API_CONFIG.STUDENT_COURSES.PROFILE}/${userIdFromLogin}/course-profile`
         );
         
         setUserProfile(response.data);

@@ -1481,7 +1481,7 @@ const FacultyDashboard: React.FC = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center px-3 py-2 text-left text-red-400 hover:bg-[#1a2644] rounded-md"
+              className="w-full flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
@@ -1501,7 +1501,7 @@ const FacultyDashboard: React.FC = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-[#1a2644] rounded-md"
+              className="w-full flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout

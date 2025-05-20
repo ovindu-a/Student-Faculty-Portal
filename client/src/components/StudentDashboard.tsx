@@ -26,6 +26,11 @@ import {
 import Scheduler from "./Scheduler"
 import ResourceManagement from "./ResourceManagement"
 import StudentCourseManagement from "./StudentCourseManagement"
+import API_CONFIG from "../lib/config"
+import axios from "axios"
+import { Badge } from "./ui/badge"
+import { CardFooter } from "./ui/card"
+import { CardDescription } from "./ui/card"
 
 // Simple Select Component
 const Select = ({
@@ -825,82 +830,55 @@ const Attendance = () => {
   )
 }
 
-const Grades = () => {
-  const [selectedCourse, setSelectedCourse] = useState("CS101");
+// Replace the existing Grades component with the new Academic Performance component
+const AcademicPerformance = () => {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [courseResults, setCourseResults] = useState<any>(null);
+  const [studyRecommendations, setStudyRecommendations] = useState<any>(null);
+  const [courseRecommendations, setCourseRecommendations] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>("results");
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
-  // Mock data for course grades
-  const courseData = {
-    CS101: {
-      name: "Introduction to Programming",
-      students: [
-        { id: "S001", name: "John Smith", grade: 87, status: "Submitted" },
-        { id: "S002", name: "Emily Johnson", grade: 92, status: "Submitted" },
-        { id: "S003", name: "Michael Brown", grade: 78, status: "Submitted" },
-        { id: "S004", name: "Jessica Davis", grade: 95, status: "Submitted" },
-        { id: "S005", name: "David Wilson", grade: 65, status: "Submitted" },
-        { id: "S006", name: "Sarah Martinez", grade: 88, status: "Submitted" },
-        { id: "S007", name: "Robert Taylor", grade: 74, status: "Submitted" },
-        { id: "S008", name: "Jennifer Anderson", grade: 91, status: "Submitted" },
-      ],
-      distribution: [2, 1, 3, 1, 1], // F, D, C, B, A
-      average: 83.75,
-      highest: 95,
-      lowest: 65
-    },
-    CS202: {
-      name: "Data Structures",
-      students: [
-        { id: "S001", name: "John Smith", grade: 82, status: "Submitted" },
-        { id: "S003", name: "Michael Brown", grade: 88, status: "Submitted" },
-        { id: "S004", name: "Jessica Davis", grade: 90, status: "Submitted" },
-        { id: "S006", name: "Sarah Martinez", grade: 76, status: "Submitted" },
-        { id: "S009", name: "Thomas Lee", grade: 94, status: "Submitted" },
-        { id: "S010", name: "Lisa Wang", grade: 85, status: "Submitted" },
-      ],
-      distribution: [0, 1, 2, 2, 1], // F, D, C, B, A
-      average: 85.83,
-      highest: 94,
-      lowest: 76
-    },
-    CS303: {
-      name: "Database Systems",
-      students: [
-        { id: "S002", name: "Emily Johnson", grade: 91, status: "Submitted" },
-        { id: "S004", name: "Jessica Davis", grade: 88, status: "Submitted" },
-        { id: "S007", name: "Robert Taylor", grade: 79, status: "Submitted" },
-        { id: "S008", name: "Jennifer Anderson", grade: 86, status: "Submitted" },
-        { id: "S010", name: "Lisa Wang", grade: 92, status: "Submitted" },
-        { id: "S011", name: "Kevin Chen", grade: 85, status: "Submitted" },
-        { id: "S012", name: "Amanda Kim", grade: 90, status: "Submitted" },
-      ],
-      distribution: [0, 0, 1, 4, 2], // F, D, C, B, A
-      average: 87.29,
-      highest: 92,
-      lowest: 79
-    },
-    CS404: {
-      name: "Computer Networks",
-      students: [
-        { id: "S003", name: "Michael Brown", grade: null, status: "Pending" },
-        { id: "S006", name: "Sarah Martinez", grade: 81, status: "Submitted" },
-        { id: "S008", name: "Jennifer Anderson", grade: 89, status: "Submitted" },
-        { id: "S009", name: "Thomas Lee", grade: null, status: "Pending" },
-        { id: "S011", name: "Kevin Chen", grade: 77, status: "Submitted" },
-        { id: "S012", name: "Amanda Kim", grade: 85, status: "Submitted" },
-      ],
-      distribution: [0, 0, 2, 2, 0], // F, D, C, B, A (only counting submitted)
-      average: 83.00,
-      highest: 89,
-      lowest: 77
-    }
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
 
-  // Get current course data
-  const currentCourse = courseData[selectedCourse as keyof typeof courseData];
+      try {
+        // Get the user_id from localStorage
+        const userId = localStorage.getItem("user_id") || "ddd3eb31-c06f-45ab-b464-632040419d82";
+        
+        // Fetch course results
+        const resultsResponse = await axios.get(
+          `${API_CONFIG.STUDENT_COURSES.RESULTS}/${userId}/course-results`
+        );
+        setCourseResults(resultsResponse.data);
+        
+        // Fetch study recommendations
+        const studyResponse = await axios.get(
+          `${API_CONFIG.RECOMMENDATIONS.STUDY}/${userId}/`
+        );
+        setStudyRecommendations(studyResponse.data);
+        
+        // Fetch course recommendations
+        const courseRecResponse = await axios.post(
+          `${API_CONFIG.RECOMMENDATIONS.COURSE}/${userId}/`
+        );
+        setCourseRecommendations(courseRecResponse.data);
+      } catch (err: any) {
+        console.error("Error fetching academic data:", err);
+        setError("Failed to load your academic performance data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Function to get grade letter
-  const getGradeLetter = (score: number | null) => {
-    if (score === null) return "N/A";
+  const getGradeLetter = (score: number): string => {
     if (score >= 90) return "A";
     if (score >= 80) return "B";
     if (score >= 70) return "C";
@@ -909,254 +887,224 @@ const Grades = () => {
   };
   
   // Function to get grade color
-  const getGradeColor = (score: number | null) => {
-    if (score === null) return "text-gray-400";
+  const getGradeColor = (score: number): string => {
     if (score >= 90) return "text-green-400";
     if (score >= 80) return "text-blue-400";
     if (score >= 70) return "text-yellow-400";
     if (score >= 60) return "text-orange-400";
     return "text-red-400";
   };
-  
+
+  // Function to get background color class based on score
+  const getBgColor = (score: number): string => {
+    if (score >= 90) return "bg-green-500";
+    if (score >= 80) return "bg-blue-500";
+    if (score >= 70) return "bg-yellow-500";
+    if (score >= 60) return "bg-orange-500";
+    return "bg-red-500";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-900/20 border border-red-500/50 text-red-300 rounded-md p-4">
+        {error}
+      </div>
+    );
+  }
+
+  // Calculate average score across all courses
+  const overallAverage = courseResults?.course_results?.reduce(
+    (sum: number, course: any) => sum + course.average_score, 0
+  ) / courseResults?.course_results?.length || 0;
+
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Grade Management</h1>
-        <p className="text-gray-400">View and manage grades for your courses</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-white">Academic Performance</h1>
+        <p className="text-gray-400">Track your academic progress and get personalized recommendations</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        {/* Course selector */}
-        <Card className="bg-gray-800 text-white border border-gray-700 md:col-span-1">
-          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
-            <CardTitle className="text-white">Select Course</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-hidden">
-              {Object.keys(courseData).map((courseId) => (
-                <button
-                  key={courseId}
-                  className={`w-full p-4 text-left border-b border-gray-700 hover:bg-gray-700 flex flex-col ${
-                    selectedCourse === courseId ? "bg-gray-700 border-l-2 border-blue-500" : ""
-                  }`}
-                  onClick={() => setSelectedCourse(courseId)}
-                >
-                  <span className="font-medium text-white">{courseId}</span>
-                  <span className="text-sm text-gray-400">{courseData[courseId as keyof typeof courseData].name}</span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Summary cards */}
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <div className="text-3xl font-bold text-blue-400">{currentCourse.average}</div>
-            <div className="text-sm text-gray-400 mt-1">Class Average</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <div className="text-3xl font-bold text-green-400">{currentCourse.highest}</div>
-            <div className="text-sm text-gray-400 mt-1">Highest Grade</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <div className="text-3xl font-bold text-yellow-400">{currentCourse.lowest}</div>
-            <div className="text-sm text-gray-400 mt-1">Lowest Grade</div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grade distribution chart */}
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
-            <CardTitle className="text-white">Grade Distribution</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            {/* Simple bar chart using divs */}
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <span className="w-8 text-center">A</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-green-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[4] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
-                </div>
-                <span className="w-8 text-right">{currentCourse.distribution[4]}</span>
+      {/* Overall Performance Card */}
+      <Card className="bg-gray-800 text-white border border-gray-700 mb-6">
+        <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+          <CardTitle className="text-white">Overall Performance</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center md:flex-row md:justify-between">
+            <div className="flex items-center mb-4 md:mb-0">
+              <div className="h-24 w-24 rounded-full flex items-center justify-center border-4 border-blue-600 mr-6">
+                <span className={`text-3xl font-bold ${getGradeColor(overallAverage)}`}>
+                  {getGradeLetter(overallAverage)}
+                </span>
               </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">B</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-blue-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[3] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
-                </div>
-                <span className="w-8 text-right">{currentCourse.distribution[3]}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">C</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-yellow-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[2] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
-                </div>
-                <span className="w-8 text-right">{currentCourse.distribution[2]}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">D</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-orange-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[1] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
-                </div>
-                <span className="w-8 text-right">{currentCourse.distribution[1]}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">F</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-red-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[0] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
-                </div>
-                <span className="w-8 text-right">{currentCourse.distribution[0]}</span>
+              <div>
+                <div className="text-2xl font-bold text-white">{overallAverage.toFixed(2)}</div>
+                <div className="text-sm text-gray-400">Overall Average</div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        
-        {/* Grading progress */}
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
-            <CardTitle className="text-white">Grading Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center">
-              {/* Circular progress indicator */}
-              <div className="relative w-36 h-36 mb-4">
-                <div className="absolute inset-0 rounded-full border-8 border-gray-700"></div>
-                <div 
-                  className="absolute inset-0 rounded-full border-8 border-blue-500 border-t-transparent" 
-                  style={{ 
-                    transform: `rotate(${(currentCourse.students.filter(s => s.grade !== null).length / currentCourse.students.length) * 360}deg)`,
-                    transition: "transform 1s ease-in-out" 
-                  }}
-                ></div>
-                <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-3xl font-bold">
-                    {Math.round((currentCourse.students.filter(s => s.grade !== null).length / currentCourse.students.length) * 100)}%
-                  </span>
-                  <span className="text-sm text-gray-400">Complete</span>
-                </div>
-              </div>
-              
-              <div className="text-center mt-2">
-                <div className="text-sm text-gray-400">
-                  {currentCourse.students.filter(s => s.grade !== null).length} of {currentCourse.students.length} submissions graded
-                </div>
-                <div className="text-sm text-gray-400 mt-2">
-                  {currentCourse.students.filter(s => s.grade === null).length} pending
-                </div>
-              </div>
+            <div className="bg-gray-900 rounded-lg p-4 max-w-2xl">
+              <p className="text-gray-300 text-sm italic">
+                "{studyRecommendations?.recommendations?.overall_recommendation}"
+              </p>
             </div>
-          </CardContent>
-        </Card>
-        
-        {/* Student grades list */}
-        <Card className="bg-gray-800 text-white border border-gray-700 lg:col-span-2">
-          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700 flex flex-row justify-between items-center">
-            <CardTitle className="text-white">Student Grades</CardTitle>
-            <div className="relative w-48">
-              <Input 
-                type="text"
-                placeholder="Search students..."
-                className="bg-gray-800 border-gray-700 text-white pl-8"
-              />
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-700">
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 font-medium text-white">ID</th>
-                    <th className="text-left py-3 px-4 font-medium text-white">Name</th>
-                    <th className="text-left py-3 px-4 font-medium text-white">Status</th>
-                    <th className="text-right py-3 px-4 font-medium text-white">Grade</th>
-                    <th className="text-center py-3 px-4 font-medium text-white">Letter</th>
-                    <th className="text-right py-3 px-4 font-medium text-white">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-800">
-                  {currentCourse.students.map((student) => (
-                    <tr key={student.id} className="border-b border-gray-700 hover:bg-gray-700">
-                      <td className="py-3 px-4 text-white">{student.id}</td>
-                      <td className="py-3 px-4 text-white">{student.name}</td>
-                      <td className="py-3 px-4">
-                        {student.status === "Submitted" ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900 text-green-300">
-                            <CheckCircle className="h-3 w-3 mr-1" /> Graded
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-900 text-yellow-300">
-                            <AlertCircle className="h-3 w-3 mr-1" /> Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {student.grade !== null ? student.grade : "--"}
-                      </td>
-                      <td className="py-3 px-4 text-center font-bold">
-                        <span className={getGradeColor(student.grade)}>
-                          {getGradeLetter(student.grade)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Button
-                          size="sm"
-                          className="h-8 bg-blue-600 hover:bg-blue-700"
-                          disabled={student.grade !== null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main Content Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+        <TabsList className="bg-gray-800 border-b border-gray-700">
+          <TabsTrigger value="results" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            Course Results
+          </TabsTrigger>
+          <TabsTrigger value="recommendations" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            Study Recommendations
+          </TabsTrigger>
+          <TabsTrigger value="courses" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+            Course Recommendations
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Course Results Tab */}
+        <TabsContent value="results" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Course Results Cards */}
+            {courseResults?.course_results.map((course: any, index: number) => (
+              <Card 
+                key={`${course.course_name}-${index}`}
+                className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors"
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-white">
+                      {course.course_name}
+                    </CardTitle>
+                    <Badge 
+                      className={`${
+                        course.average_score >= 80 ? "bg-green-800 text-green-200" : 
+                        course.average_score >= 70 ? "bg-blue-800 text-blue-200" :
+                        "bg-yellow-800 text-yellow-200"
+                      }`}
+                    >
+                      {getGradeLetter(course.average_score)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-gray-400">Average Score</span>
+                      <span className={`font-medium ${getGradeColor(course.average_score)}`}>
+                        {course.average_score.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                      <div 
+                        className={`${getBgColor(course.average_score)} h-full rounded-full`} 
+                        style={{ width: `${course.average_score}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="border-t border-gray-700 pt-4">
+                  <Button 
+                    variant="outline"
+                    className="w-full border-gray-700 hover:bg-gray-700 text-gray-300"
+                    onClick={() => {
+                      setSelectedCourse(course.course_name);
+                      setActiveTab("recommendations");
+                    }}
+                  >
+                    View Recommendations
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Study Recommendations Tab */}
+        <TabsContent value="recommendations" className="mt-6">
+          <div className="space-y-6">
+            {studyRecommendations?.recommendations?.recommendations
+              .filter((rec: any) => !selectedCourse || rec.course_name === selectedCourse)
+              .map((rec: any, index: number) => (
+                <Card key={index} className="bg-gray-800 border-gray-700">
+                  <CardHeader className="border-b border-gray-700">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-white">{rec.course_name}</CardTitle>
+                      {selectedCourse && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setSelectedCourse(null)}
+                          className="h-8 px-2 text-gray-400 hover:text-white"
                         >
-                          Update
+                          View All
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-400 mb-2">Current Progress</h3>
+                        <p className="text-gray-300">{rec.current_progress}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-blue-400 mb-2">Recommendations</h3>
+                        <p className="text-gray-300">{rec.study_recommendation}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        </TabsContent>
+
+        {/* Course Recommendations Tab */}
+        <TabsContent value="courses" className="mt-6">
+          <Card className="bg-gray-800 border-gray-700 mb-6">
+            <CardHeader className="border-b border-gray-700">
+              <CardTitle className="text-white">Recommended Courses</CardTitle>
+              <CardDescription className="text-gray-400">
+                {courseRecommendations?.recommendations?.overall_recommendation}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {courseRecommendations?.recommendations?.recommended_courses.map((course: any, index: number) => (
+                <div 
+                  key={index}
+                  className={`p-6 ${index !== courseRecommendations.recommendations.recommended_courses.length - 1 ? 'border-b border-gray-700' : ''}`}
+                >
+                  <h3 className="text-lg font-medium text-white mb-2">{course.course_name}</h3>
+                  <p className="text-gray-400 text-sm mb-4">{course.description}</p>
+                  <div className="bg-gray-900 rounded-lg p-3">
+                    <h4 className="text-blue-400 text-sm font-medium mb-1">Why this course is relevant for you:</h4>
+                    <p className="text-gray-300 text-sm">{course.relevance}</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
-  )
-}
+  );
+};
 
 const navItems = [
   { id: "scheduler", label: "Class Schedule", icon: Calendar },
   { id: "attendance", label: "Attendance", icon: Users },
-  { id: "grades", label: "Grades", icon: GraduationCap },
+  { id: "grades", label: "Academic Performance", icon: GraduationCap },
   { id: "course-management", label: "Course Management", icon: GraduationCap },
   { id: "resources", label: "Resource Management", icon: Library },
 ]
@@ -1187,6 +1135,11 @@ const StudentDashboard: React.FC = () => {
           return
         }
 
+        // Store user ID in localStorage for other components to use
+        if (userData.id) {
+          localStorage.setItem("user_id", userData.id)
+        }
+        
         setUser(userData)
       } catch (error) {
         console.error("Error fetching user data:", error)
@@ -1242,7 +1195,7 @@ const StudentDashboard: React.FC = () => {
       case "attendance":
         return <Attendance />
       case "grades":
-        return <Grades />
+        return <AcademicPerformance />
       case "course-management":
         return <StudentCourseManagement />
       case "resources":
@@ -1255,95 +1208,102 @@ const StudentDashboard: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen h-screen w-full bg-gray-900 overflow-hidden">
       {/* Top header bar for mobile - only shown on small screens */}
-      <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center border-b border-gray-800">
-        <h2 className="text-xl font-bold">Student Portal</h2>
+      <div className="md:hidden bg-[#0d1525] text-white p-4 flex justify-between items-center border-b border-[#1a2644]">
+        <h2 className="text-xl font-bold">
+          <span className="text-blue-400">Student</span>
+          <span>Portal</span>
+        </h2>
         <button onClick={toggleSidebar} className="p-1">
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+        </button>
       </div>
 
       <div className="flex flex-1 overflow-hidden w-full h-full">
         {/* Left sidebar - inspired by CampusSecure */}
         <div
-          className={`${isSidebarOpen ? "block" : "hidden"} md:block bg-gray-900 text-white border-r border-gray-800 flex-shrink-0 ${
+          className={`${isSidebarOpen ? "block" : "hidden"} md:block bg-[#0d1525] text-white border-r border-[#1a2644] flex-shrink-0 ${
             isSidebarOpen ? "w-full md:w-64" : "w-0"
           } transition-all duration-300 fixed md:static md:h-full z-20 h-[calc(100%-4rem)]`}
         >
-          <div className="hidden md:flex p-4 border-b border-gray-800 items-center">
-            <Shield className="h-6 w-6 mr-2 text-blue-400" />
-            <h2 className="text-xl font-bold">Student Portal</h2>
+          {/* Logo and title section */}
+          <div className="p-6 border-b border-[#1a2644]">
+            <h2 className="text-xl font-bold flex items-center">
+              <span className="text-blue-400">Student</span>
+              <span className="ml-1">Portal</span>
+            </h2>
           </div>
-          <nav className="mt-4 overflow-y-auto h-[calc(100%-8rem)]">
+          
+          <nav className="mt-4 overflow-y-auto h-[calc(100%-12rem)]">
             <ul className="space-y-1 px-2">
               {navItems.map((item) => (
                 <li key={item.id}>
-          <button
+                  <button
                     onClick={() => {
                       setActiveSection(item.id)
                       if (window.innerWidth < 768) {
                         setIsSidebarOpen(false)
                       }
                     }}
-                    className={`w-full flex items-center px-4 py-3 text-left rounded-md ${
+                    className={`w-full flex items-center px-4 py-3 text-left rounded-sm ${
                       activeSection === item.id
                         ? "bg-gray-800 text-white"
-                        : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
+                        : "text-gray-400 hover:bg-[#1a2644] hover:text-white"
                     }`}
                   >
-                    <item.icon className="h-5 w-5 mr-3" />
+                    <item.icon className={`h-5 w-5 mr-3 ${activeSection === item.id ? "text-white" : "text-blue-400"}`} />
                     {item.label}
-          </button>
+                  </button>
                 </li>
               ))}
             </ul>
           </nav>
 
-          {/* User info and logout - styled like CampusSecure */}
-          <div className="hidden md:block absolute bottom-0 w-64 border-t border-gray-800 p-4">
+          {/* User info and logout - desktop */}
+          <div className="hidden md:block absolute bottom-0 w-full border-t border-[#1a2644] p-4">
             <div className="flex items-center mb-3">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
-                {user?.email?.charAt(0).toUpperCase() || "F"}
+                {user?.email?.charAt(0).toUpperCase() || "S"}
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold">Student User</span>
+                <span className="font-semibold text-sm">{user?.name || "Student User"}</span>
                 <span className="text-xs text-gray-400">{user?.email}</span>
               </div>
             </div>
-          <button
+            <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-800 rounded-md"
+              className="w-full flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
-          </button>
+            </button>
           </div>
 
           {/* Mobile user info and logout */}
-          <div className="md:hidden border-t border-gray-800 p-4 mt-4">
+          <div className="md:hidden border-t border-[#1a2644] p-4 mt-4">
             <div className="flex items-center mb-3">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
-                {user?.email?.charAt(0).toUpperCase() || "F"}
+                {user?.email?.charAt(0).toUpperCase() || "S"}
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold">Student User</span>
+                <span className="font-semibold text-sm">{user?.name || "Student User"}</span>
                 <span className="text-xs text-gray-400">{user?.email}</span>
               </div>
             </div>
-          <button
+            <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-800 rounded-md"
+              className="w-full flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
-          </button>
-            </div>
+            </button>
           </div>
+        </div>
 
         {/* Main content area */}
         <div className="flex-1 overflow-auto w-full h-full bg-gray-900 p-4">
           {renderActiveSection()}
         </div>
-    </div>
+      </div>
     </div>
   )
 }

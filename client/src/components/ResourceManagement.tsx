@@ -1394,7 +1394,7 @@ const ResourceManagement = () => {
                     <Label htmlFor="type">Resource Type *</Label>
                     <Select
                       value={newResourceForm.type ?? "Room"}
-                      onChange={(value) => setNewResourceForm({ ...newResourceForm, type: value })}
+                      onValueChange={(value) => setNewResourceForm({ ...newResourceForm, type: value })}
                       className="bg-gray-800 border-gray-700 text-white"
                     >
                       <SelectItem value="Lab">Lab</SelectItem>

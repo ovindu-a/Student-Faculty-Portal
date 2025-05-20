@@ -57,6 +57,12 @@ export const API_CONFIG = {
     ADD_COURSE: `${urls.API_GATEWAY}/courses/add-new-course`,
   },
 
+  // Student course profile endpoints
+  STUDENT_COURSES: {
+    PROFILE: `http://localhost:8020/users`,  // Base URL, will append /{userId}/course-profile in component
+    RESULTS: `http://localhost:8020/users`,  // Base URL, will append /{userId}/course-results in component
+  },
+
   // Resource endpoints
   RESOURCES: {
     ALL: `${urls.RESOURCES}/get-resources`,
@@ -102,6 +108,12 @@ export const API_CONFIG = {
   // Notifications endpoints
   NOTIFICATIONS: {
     SEND: `${urls.NOTIFICATIONS}/send`,
+  },
+
+  // Recommendations endpoints
+  RECOMMENDATIONS: {
+    STUDY: `http://localhost:8020/recommendations/study`,  // Base URL, will append /{userId}/ in component
+    COURSE: `http://localhost:8020/recommendations/course`,  // Base URL, will append /{userId}/ in component
   },
 };
 

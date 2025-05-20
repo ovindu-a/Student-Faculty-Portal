@@ -988,97 +988,157 @@ const Students = () => {
 }
 
 const Grades = () => {
-  const [selectedCourse, setSelectedCourse] = useState("CS101");
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [studentsData, setStudentsData] = useState<any[]>([]);
+  const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Mock data for course grades
-  const courseData = {
-    CS101: {
-      name: "Introduction to Programming",
-      students: [
-        { id: "S001", name: "John Smith", grade: 87, status: "Submitted" },
-        { id: "S002", name: "Emily Johnson", grade: 92, status: "Submitted" },
-        { id: "S003", name: "Michael Brown", grade: 78, status: "Submitted" },
-        { id: "S004", name: "Jessica Davis", grade: 95, status: "Submitted" },
-        { id: "S005", name: "David Wilson", grade: 65, status: "Submitted" },
-        { id: "S006", name: "Sarah Martinez", grade: 88, status: "Submitted" },
-        { id: "S007", name: "Robert Taylor", grade: 74, status: "Submitted" },
-        { id: "S008", name: "Jennifer Anderson", grade: 91, status: "Submitted" },
-      ],
-      distribution: [2, 1, 3, 1, 1], // F, D, C, B, A
-      average: 83.75,
-      highest: 95,
-      lowest: 65
-    },
-    CS202: {
-      name: "Data Structures",
-      students: [
-        { id: "S001", name: "John Smith", grade: 82, status: "Submitted" },
-        { id: "S003", name: "Michael Brown", grade: 88, status: "Submitted" },
-        { id: "S004", name: "Jessica Davis", grade: 90, status: "Submitted" },
-        { id: "S006", name: "Sarah Martinez", grade: 76, status: "Submitted" },
-        { id: "S009", name: "Thomas Lee", grade: 94, status: "Submitted" },
-        { id: "S010", name: "Lisa Wang", grade: 85, status: "Submitted" },
-      ],
-      distribution: [0, 1, 2, 2, 1], // F, D, C, B, A
-      average: 85.83,
-      highest: 94,
-      lowest: 76
-    },
-    CS303: {
-      name: "Database Systems",
-      students: [
-        { id: "S002", name: "Emily Johnson", grade: 91, status: "Submitted" },
-        { id: "S004", name: "Jessica Davis", grade: 88, status: "Submitted" },
-        { id: "S007", name: "Robert Taylor", grade: 79, status: "Submitted" },
-        { id: "S008", name: "Jennifer Anderson", grade: 86, status: "Submitted" },
-        { id: "S010", name: "Lisa Wang", grade: 92, status: "Submitted" },
-        { id: "S011", name: "Kevin Chen", grade: 85, status: "Submitted" },
-        { id: "S012", name: "Amanda Kim", grade: 90, status: "Submitted" },
-      ],
-      distribution: [0, 0, 1, 4, 2], // F, D, C, B, A
-      average: 87.29,
-      highest: 92,
-      lowest: 79
-    },
-    CS404: {
-      name: "Computer Networks",
-      students: [
-        { id: "S003", name: "Michael Brown", grade: null, status: "Pending" },
-        { id: "S006", name: "Sarah Martinez", grade: 81, status: "Submitted" },
-        { id: "S008", name: "Jennifer Anderson", grade: 89, status: "Submitted" },
-        { id: "S009", name: "Thomas Lee", grade: null, status: "Pending" },
-        { id: "S011", name: "Kevin Chen", grade: 77, status: "Submitted" },
-        { id: "S012", name: "Amanda Kim", grade: 85, status: "Submitted" },
-      ],
-      distribution: [0, 0, 2, 2, 0], // F, D, C, B, A (only counting submitted)
-      average: 83.00,
-      highest: 89,
-      lowest: 77
+  // Fetch all available courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setCoursesLoading(true);
+      try {
+        const response = await fetch("http://localhost:8020/courses");
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch courses');
+        }
+        
+        const coursesData = await response.json();
+        setCourses(coursesData || []);
+        
+        // Set the first course as selected by default if there are courses
+        if (coursesData && coursesData.length > 0 && !selectedCourse) {
+          setSelectedCourse(coursesData[0].id);
+        }
+      } catch (err: any) {
+        console.error("Error fetching courses:", err);
+        setError(err.message || "An error occurred while fetching courses");
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  // Fetch student data for the selected course
+  useEffect(() => {
+    const fetchStudentsData = async () => {
+      if (!selectedCourse) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`http://localhost:8020/courses/${selectedCourse}/data`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch student data');
+        }
+        
+        const data = await response.json();
+        setStudentsData(data.students_data || []);
+      } catch (err: any) {
+        console.error("Error fetching student data:", err);
+        setError(err.message || "An error occurred while fetching data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (selectedCourse) {
+      fetchStudentsData();
     }
-  };
+  }, [selectedCourse]);
 
-  // Get current course data
-  const currentCourse = courseData[selectedCourse as keyof typeof courseData];
+  // Filter students based on search term
+  const filteredStudents = studentsData.filter(student => 
+    (student.student_info.first_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
+    (student.student_info.last_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
+    (student.student_info.email?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+  );
+
+  // Calculate stats for the current course
+  const calculateStats = () => {
+    if (filteredStudents.length === 0) return { average: 0, highest: 0, lowest: 0, distribution: [0, 0, 0, 0, 0] };
+    
+    let sum = 0;
+    let highest = 0;
+    let lowest = 100;
+    const distribution = [0, 0, 0, 0, 0]; // F, D, C, B, A
+    
+    filteredStudents.forEach(student => {
+      const score = student.data.avg_score;
+      sum += score;
+      
+      if (score > highest) highest = score;
+      if (score < lowest) lowest = score;
+      
+      // Update distribution
+      if (score >= 75) distribution[4]++; // A
+      else if (score >= 65) distribution[3]++; // B
+      else if (score >= 55) distribution[2]++; // C
+      else if (score >= 45) distribution[1]++; // D
+      else distribution[0]++; // F
+    });
+    
+    return {
+      average: sum / filteredStudents.length,
+      highest,
+      lowest,
+      distribution
+    };
+  };
+  
+  const stats = calculateStats();
 
   // Function to get grade letter
   const getGradeLetter = (score: number | null) => {
     if (score === null) return "N/A";
-    if (score >= 90) return "A";
-    if (score >= 80) return "B";
-    if (score >= 70) return "C";
-    if (score >= 60) return "D";
+    if (score >= 75) return "A";
+    if (score >= 65) return "B";
+    if (score >= 55) return "C";
+    if (score >= 45) return "D";
     return "F";
   };
   
   // Function to get grade color
   const getGradeColor = (score: number | null) => {
     if (score === null) return "text-gray-400";
-    if (score >= 90) return "text-green-400";
-    if (score >= 80) return "text-blue-400";
-    if (score >= 70) return "text-yellow-400";
-    if (score >= 60) return "text-orange-400";
+    if (score >= 75) return "text-green-400";
+    if (score >= 65) return "text-blue-400";
+    if (score >= 55) return "text-yellow-400";
+    if (score >= 45) return "text-orange-400";
     return "text-red-400";
   };
+
+  // Get the name of the selected course
+  const getSelectedCourseName = (): string => {
+    if (!selectedCourse) return "Select a course";
+    const course = courses.find(c => c.id === selectedCourse);
+    return course ? course.name : "Unknown course";
+  };
+
+  if (coursesLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <span className="ml-3 text-white">Loading courses...</span>
+      </div>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <div className="bg-yellow-900/20 border border-yellow-500/50 text-yellow-300 rounded-md p-4">
+        No courses available. Please add courses first.
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col h-full">
@@ -1094,225 +1154,346 @@ const Grades = () => {
             <CardTitle className="text-white">Select Course</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-hidden">
-              {Object.keys(courseData).map((courseId) => (
+            <div className="overflow-y-auto max-h-64">
+              {courses.map((course) => (
                 <button
-                  key={courseId}
+                  key={course.id}
                   className={`w-full p-4 text-left border-b border-gray-700 hover:bg-gray-700 flex flex-col ${
-                    selectedCourse === courseId ? "bg-gray-700 border-l-2 border-blue-500" : ""
+                    selectedCourse === course.id ? "bg-gray-700 border-l-2 border-blue-500" : ""
                   }`}
-                  onClick={() => setSelectedCourse(courseId)}
+                  onClick={() => setSelectedCourse(course.id)}
                 >
-                  <span className="font-medium text-white">{courseId}</span>
-                  <span className="text-sm text-gray-400">{courseData[courseId as keyof typeof courseData].name}</span>
+                  <span className="font-medium text-white truncate">{course.name}</span>
+                  <span className="text-xs text-gray-400 truncate">{course.id.substring(0, 8)}...</span>
                 </button>
               ))}
             </div>
           </CardContent>
         </Card>
         
-        {/* Summary cards */}
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <div className="text-3xl font-bold text-blue-400">{currentCourse.average}</div>
-            <div className="text-sm text-gray-400 mt-1">Class Average</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <div className="text-3xl font-bold text-green-400">{currentCourse.highest}</div>
-            <div className="text-sm text-gray-400 mt-1">Highest Grade</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardContent className="p-4 flex flex-col items-center justify-center h-full">
-            <div className="text-3xl font-bold text-yellow-400">{currentCourse.lowest}</div>
-            <div className="text-sm text-gray-400 mt-1">Lowest Grade</div>
+        {/* Course summary */}
+        <Card className="bg-gray-800 text-white border border-gray-700 md:col-span-3">
+          <CardContent className="p-4">
+            <h2 className="text-xl font-semibold mb-2">{getSelectedCourseName()}</h2>
+            
+            {loading ? (
+              <div className="flex items-center justify-center h-20">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
+                <span>Loading data...</span>
+              </div>
+            ) : error ? (
+              <div className="text-red-400">{error}</div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4 mt-2">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="text-2xl font-bold text-blue-400">{stats.average.toFixed(2)}</div>
+                  <div className="text-sm text-gray-400 mt-1">Class Average</div>
+                </div>
+                <div className="flex flex-col items-center justify-center">
+                  <div className="text-2xl font-bold text-green-400">{stats.highest.toFixed(2)}</div>
+                  <div className="text-sm text-gray-400 mt-1">Highest Grade</div>
+                </div>
+                <div className="flex flex-col items-center justify-center">
+                  <div className="text-2xl font-bold text-yellow-400">{stats.lowest.toFixed(2)}</div>
+                  <div className="text-sm text-gray-400 mt-1">Lowest Grade</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grade distribution chart */}
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
-            <CardTitle className="text-white">Grade Distribution</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            {/* Simple bar chart using divs */}
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <span className="w-8 text-center">A</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-green-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[4] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-900/20 border border-red-500/50 text-red-300 rounded-md p-4">
+          {error}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Grade distribution chart */}
+          <Card className="bg-gray-800 text-white border border-gray-700">
+            <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+              <CardTitle className="text-white">Grade Distribution</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {/* Bar chart using divs */}
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <span className="w-8 text-center">A</span>
+                  <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                    <div 
+                      className="bg-green-500 h-full rounded-full" 
+                      style={{ 
+                        width: filteredStudents.length > 0 ? 
+                          `${(stats.distribution[4] / filteredStudents.length) * 100}%` : "0%" 
+                      }}
+                    ></div>
+                  </div>
+                  <span className="w-8 text-right">{stats.distribution[4]}</span>
                 </div>
-                <span className="w-8 text-right">{currentCourse.distribution[4]}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">B</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-blue-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[3] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
+                <div className="flex items-center">
+                  <span className="w-8 text-center">B</span>
+                  <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                    <div 
+                      className="bg-blue-500 h-full rounded-full" 
+                      style={{ 
+                        width: filteredStudents.length > 0 ? 
+                          `${(stats.distribution[3] / filteredStudents.length) * 100}%` : "0%" 
+                      }}
+                    ></div>
+                  </div>
+                  <span className="w-8 text-right">{stats.distribution[3]}</span>
                 </div>
-                <span className="w-8 text-right">{currentCourse.distribution[3]}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">C</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-yellow-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[2] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
+                <div className="flex items-center">
+                  <span className="w-8 text-center">C</span>
+                  <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                    <div 
+                      className="bg-yellow-500 h-full rounded-full" 
+                      style={{ 
+                        width: filteredStudents.length > 0 ? 
+                          `${(stats.distribution[2] / filteredStudents.length) * 100}%` : "0%" 
+                      }}
+                    ></div>
+                  </div>
+                  <span className="w-8 text-right">{stats.distribution[2]}</span>
                 </div>
-                <span className="w-8 text-right">{currentCourse.distribution[2]}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">D</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-orange-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[1] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
+                <div className="flex items-center">
+                  <span className="w-8 text-center">D</span>
+                  <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                    <div 
+                      className="bg-orange-500 h-full rounded-full" 
+                      style={{ 
+                        width: filteredStudents.length > 0 ? 
+                          `${(stats.distribution[1] / filteredStudents.length) * 100}%` : "0%" 
+                      }}
+                    ></div>
+                  </div>
+                  <span className="w-8 text-right">{stats.distribution[1]}</span>
                 </div>
-                <span className="w-8 text-right">{currentCourse.distribution[1]}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="w-8 text-center">F</span>
-                <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
-                  <div 
-                    className="bg-red-500 h-full rounded-full" 
-                    style={{ 
-                      width: `${(currentCourse.distribution[0] / currentCourse.students.filter(s => s.grade !== null).length) * 100}%` 
-                    }}
-                  ></div>
+                <div className="flex items-center">
+                  <span className="w-8 text-center">F</span>
+                  <div className="flex-1 bg-gray-700 rounded-full h-7 overflow-hidden">
+                    <div 
+                      className="bg-red-500 h-full rounded-full" 
+                      style={{ 
+                        width: filteredStudents.length > 0 ? 
+                          `${(stats.distribution[0] / filteredStudents.length) * 100}%` : "0%" 
+                      }}
+                    ></div>
+                  </div>
+                  <span className="w-8 text-right">{stats.distribution[0]}</span>
                 </div>
-                <span className="w-8 text-right">{currentCourse.distribution[0]}</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Grading progress */}
-        <Card className="bg-gray-800 text-white border border-gray-700">
-          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
-            <CardTitle className="text-white">Grading Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center">
-              {/* Circular progress indicator */}
-              <div className="relative w-36 h-36 mb-4">
-                <div className="absolute inset-0 rounded-full border-8 border-gray-700"></div>
-                <div 
-                  className="absolute inset-0 rounded-full border-8 border-blue-500 border-t-transparent" 
-                  style={{ 
-                    transform: `rotate(${(currentCourse.students.filter(s => s.grade !== null).length / currentCourse.students.length) * 360}deg)`,
-                    transition: "transform 1s ease-in-out" 
-                  }}
-                ></div>
-                <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-3xl font-bold">
-                    {Math.round((currentCourse.students.filter(s => s.grade !== null).length / currentCourse.students.length) * 100)}%
+            </CardContent>
+          </Card>
+          
+          {/* Time spent vs. Score scatter plot */}
+          <Card className="bg-gray-800 text-white border border-gray-700">
+            <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+              <CardTitle className="text-white">Time Spent vs. Score Analysis</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="h-64 relative border border-gray-700 rounded-md">
+                {/* Y-axis (Score) */}
+                <div className="absolute left-0 top-0 bottom-0 w-10 flex flex-col justify-between items-center py-2">
+                  <span className="text-xs text-gray-400">100%</span>
+                  <span className="text-xs text-gray-400">75%</span>
+                  <span className="text-xs text-gray-400">50%</span>
+                  <span className="text-xs text-gray-400">25%</span>
+                  <span className="text-xs text-gray-400">0%</span>
+                </div>
+                
+                {/* Chart area */}
+                <div className="absolute left-10 right-0 top-0 bottom-10 pl-2 pb-2">
+                  {/* Grid lines */}
+                  <div className="absolute left-0 right-0 top-25% border-t border-dashed border-gray-700"></div>
+                  <div className="absolute left-0 right-0 top-50% border-t border-dashed border-gray-700"></div>
+                  <div className="absolute left-0 right-0 top-75% border-t border-dashed border-gray-700"></div>
+                  
+                  {/* Data points */}
+                  {filteredStudents.map((student, index) => {
+                    const maxTimeSpent = Math.max(...filteredStudents.map(s => s.data.total_time_spent), 1);
+                    const xPos = (student.data.total_time_spent / maxTimeSpent) * 100;
+                    const yPos = 100 - (student.data.avg_score); // Invert for y-axis
+                    
+                    return (
+                      <div 
+                        key={index}
+                        className={`absolute h-3 w-3 rounded-full ${getPointColor(student.data.avg_score)}`}
+                        style={{ 
+                          left: `${xPos}%`, 
+                          bottom: `${student.data.avg_score}%`,
+                          transform: `translate(-50%, 50%)` 
+                        }}
+                        title={`${student.student_info.first_name} ${student.student_info.last_name || ''}: ${student.data.avg_score.toFixed(2)}%, ${student.data.total_time_spent} hours`}
+                      ></div>
+                    );
+                  })}
+                </div>
+                
+                {/* X-axis (Time) */}
+                <div className="absolute left-10 right-0 bottom-0 h-10 flex justify-between items-center px-2">
+                  <span className="text-xs text-gray-400">0h</span>
+                  <span className="text-xs text-gray-400">Time Spent</span>
+                  <span className="text-xs text-gray-400">
+                    {Math.max(...filteredStudents.map(s => s.data.total_time_spent), 1)}h
                   </span>
-                  <span className="text-sm text-gray-400">Complete</span>
                 </div>
               </div>
-              
-              <div className="text-center mt-2">
-                <div className="text-sm text-gray-400">
-                  {currentCourse.students.filter(s => s.grade !== null).length} of {currentCourse.students.length} submissions graded
+              <div className="flex justify-center items-center mt-4 text-sm text-gray-400">
+                <div className="flex items-center mr-4">
+                  <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
+                  <span>A (90-100%)</span>
                 </div>
-                <div className="text-sm text-gray-400 mt-2">
-                  {currentCourse.students.filter(s => s.grade === null).length} pending
+                <div className="flex items-center mr-4">
+                  <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
+                  <span>B (80-89%)</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="h-3 w-3 rounded-full bg-yellow-500 mr-2"></div>
+                  <span>C or below</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Student grades list */}
-        <Card className="bg-gray-800 text-white border border-gray-700 lg:col-span-2">
-          <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700 flex flex-row justify-between items-center">
-            <CardTitle className="text-white">Student Grades</CardTitle>
-            <div className="relative w-48">
-              <Input 
-                type="text"
-                placeholder="Search students..."
-                className="bg-gray-800 border-gray-700 text-white pl-8"
-              />
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-700">
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 font-medium text-white">ID</th>
-                    <th className="text-left py-3 px-4 font-medium text-white">Name</th>
-                    <th className="text-left py-3 px-4 font-medium text-white">Status</th>
-                    <th className="text-right py-3 px-4 font-medium text-white">Grade</th>
-                    <th className="text-center py-3 px-4 font-medium text-white">Letter</th>
-                    <th className="text-right py-3 px-4 font-medium text-white">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-800">
-                  {currentCourse.students.map((student) => (
-                    <tr key={student.id} className="border-b border-gray-700 hover:bg-gray-700">
-                      <td className="py-3 px-4 text-white">{student.id}</td>
-                      <td className="py-3 px-4 text-white">{student.name}</td>
-                      <td className="py-3 px-4">
-                        {student.status === "Submitted" ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900 text-green-300">
-                            <CheckCircle className="h-3 w-3 mr-1" /> Graded
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-900 text-yellow-300">
-                            <AlertCircle className="h-3 w-3 mr-1" /> Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {student.grade !== null ? student.grade : "--"}
-                      </td>
-                      <td className="py-3 px-4 text-center font-bold">
-                        <span className={getGradeColor(student.grade)}>
-                          {getGradeLetter(student.grade)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Button
-                          size="sm"
-                          className="h-8 bg-blue-600 hover:bg-blue-700"
-                          disabled={student.grade !== null}
-                        >
-                          Update
-                        </Button>
-                      </td>
+            </CardContent>
+          </Card>
+          
+          {/* Student grades list */}
+          <Card className="bg-gray-800 text-white border border-gray-700 lg:col-span-2">
+            <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700 flex flex-row justify-between items-center">
+              <CardTitle className="text-white">Student Grades</CardTitle>
+              <div className="relative w-48">
+                <Input 
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white pl-8"
+                />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-700">
+                    <tr className="border-b border-gray-700">
+                      <th className="text-left py-3 px-4 font-medium text-white">ID</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Name</th>
+                      <th className="text-left py-3 px-4 font-medium text-white">Email</th>
+                      <th className="text-center py-3 px-4 font-medium text-white">Hours</th>
+                      <th className="text-center py-3 px-4 font-medium text-white">Completed</th>
+                      <th className="text-right py-3 px-4 font-medium text-white">Score</th>
+                      <th className="text-center py-3 px-4 font-medium text-white">Grade</th>
+                      <th className="text-right py-3 px-4 font-medium text-white">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  </thead>
+                  <tbody className="bg-gray-800">
+                    {filteredStudents.length > 0 ? (
+                      filteredStudents.map((student) => (
+                        <tr key={student.enrollment_id} className="border-b border-gray-700 hover:bg-gray-700">
+                          <td className="py-3 px-4 text-white">{student.student_info.id.substring(0, 8)}...</td>
+                          <td className="py-3 px-4 text-white">
+                            {student.student_info.first_name} {student.student_info.last_name || ''}
+                          </td>
+                          <td className="py-3 px-4 text-white">{student.student_info.email || 'N/A'}</td>
+                          <td className="py-3 px-4 text-center text-white">{student.data.total_time_spent}</td>
+                          <td className="py-3 px-4 text-center text-white">{student.data.courses_completed}</td>
+                          <td className="py-3 px-4 text-right">
+                            {student.data.avg_score.toFixed(2)}%
+                          </td>
+                          <td className="py-3 px-4 text-center font-bold">
+                            <span className={getGradeColor(student.data.avg_score)}>
+                              {getGradeLetter(student.data.avg_score)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <Button
+                              size="sm"
+                              className="h-8 bg-blue-600 hover:bg-blue-700"
+                            >
+                              Update
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="py-6 text-center text-gray-500">
+                          {studentsData.length === 0 ? "No students enrolled in this course" : "No matching students found"}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Completion Progress Chart */}
+          <Card className="bg-gray-800 text-white border border-gray-700 lg:col-span-2">
+            <CardHeader className="bg-gray-800 pb-3 pt-5 border-b border-gray-700">
+              <CardTitle className="text-white">Course Completion Progress</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {filteredStudents.slice(0, 10).map((student, index) => (
+                  <div key={index} className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-300 truncate" style={{ maxWidth: '50%' }}>
+                        {student.student_info.first_name} {student.student_info.last_name || ''}
+                      </span>
+                      <span className="text-gray-400 text-sm">
+                        {student.data.courses_completed} / 5 completed
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full"
+                        style={{ 
+                          width: `${(student.data.courses_completed / 5) * 100}%`,
+                          backgroundColor: getCompletionColor(student.data.courses_completed, 5)
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+                {filteredStudents.length > 10 && (
+                  <div className="text-center text-gray-400 text-sm mt-4">
+                    Showing 10 of {filteredStudents.length} students
+                  </div>
+                )}
+                {filteredStudents.length === 0 && (
+                  <div className="text-center text-gray-400 py-10">
+                    No student data available
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
+}
+
+// Helper function to get point color for scatter plot
+function getPointColor(score: number): string {
+  if (score >= 90) return "bg-green-500";
+  if (score >= 80) return "bg-blue-500";
+  return "bg-yellow-500";
+}
+
+// Helper function to get completion color
+function getCompletionColor(completed: number, total: number): string {
+  const percentage = (completed / total) * 100;
+  if (percentage >= 80) return "#10b981"; // green-500
+  if (percentage >= 60) return "#3b82f6"; // blue-500
+  if (percentage >= 40) return "#eab308"; // yellow-500
+  if (percentage >= 20) return "#f97316"; // orange-500
+  return "#ef4444"; // red-500
 }
 
 const navItems = [
@@ -1320,7 +1501,7 @@ const navItems = [
   { id: "students", label: "Students", icon: Users },
   { id: "grades", label: "Grades", icon: GraduationCap },
   { id: "course-management", label: "Courses", icon: BookOpen },
-  { id: "resources", label: "Resources", icon: Database },
+  { id: "resources", label: "Resource Allocation", icon: Database },
 ]
 
 const FacultyDashboard: React.FC = () => {

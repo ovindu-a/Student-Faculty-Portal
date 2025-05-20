@@ -77,6 +77,16 @@ interface Booking {
   bookedBy?: string
 }
 
+// First, let's add a Person interface to match your API response
+interface Person {
+  id: number
+  created_at: string
+  name: string
+  occupation: string
+  contact_number: string
+  resource_assigned: string | null
+}
+
 // Mock data for resources
 const mockResources: Resource[] = [
   {
@@ -218,7 +228,16 @@ const CalendarDay = ({
                       b.status === "confirmed",
                   )
 
-                  const isBooked = !!booking
+                  const isBooked =
+                    !!booking ||
+                    bookings.some(
+                      (b) =>
+                        b.resourceId === resource.id &&
+                        b.date === date &&
+                        b.startTime <= slot &&
+                        b.endTime > slot &&
+                        b.status === "confirmed",
+                    )
                   const isUnderMaintenance = resource.status === "under_maintenance"
 
                   const cellClass = `p-2 border-r border-gray-700 text-center text-xs ${
@@ -394,6 +413,19 @@ const AvailableResources = () => {
 
       const data = await response.json()
       console.log("Booking confirmed:", data)
+
+      // Add this code to update the bookings state immediately
+      const newBooking: Booking = {
+        id: data.id || String(Date.now()),
+        resourceId: selectedResource.id,
+        resourceName: selectedResource.name,
+        date: selectedDate,
+        startTime: selectedTimeSlot,
+        endTime: calculateEndTime(selectedTimeSlot, Number.parseInt(bookingDuration)),
+        status: "confirmed",
+        resource: selectedResource,
+      }
+      setBookings((prevBookings) => [...prevBookings, newBooking])
 
       // Reset form state
       setShowBookingDialog(false)
@@ -663,7 +695,7 @@ const BookedResources = () => {
       const data = await response.json()
 
       if (response.ok && data.status === "success") {
-        setBookings(prev => prev.filter(b => b.id !== bookingId))
+        setBookings((prev) => prev.filter((b) => b.id !== bookingId))
       } else {
         throw new Error(data.message || "Failed to delete booking")
       }
@@ -921,6 +953,14 @@ const ResourceManagement = () => {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>("")
 
+  // Add these state variables at the beginning of the ResourceManagement component:
+
+  const [people, setPeople] = useState<Person[]>([])
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
+  const [selectedResourceId, setSelectedResourceId] = useState<string>("0") // Updated default value to be a non-empty string
+  const [showAssignmentDialog, setShowAssignmentDialog] = useState<boolean>(false)
+  const [assignmentNotes, setAssignmentNotes] = useState<string>("")
+
   useEffect(() => {
     const fetchResources = async () => {
       try {
@@ -947,8 +987,23 @@ const ResourceManagement = () => {
 
     fetchResources()
   }, [])
+
+  // Add this useEffect to fetch people data
+  useEffect(() => {
+    const fetchPeople = async () => {
+      try {
+        const response = await axios.get("http://127.0.0.1:8010/get-people")
+        setPeople(response.data)
+      } catch (error) {
+        console.error("Error fetching people:", error)
+      }
+    }
+
+    fetchPeople()
+  }, [])
+
   // New resource form state
-  const [newResource, setNewResource] = useState<Partial<Resource>>({
+  const [newResourceForm, setNewResourceForm] = useState<Partial<Resource>>({
     name: "",
     type: "Room",
     capacity: 0,
@@ -968,7 +1023,7 @@ const ResourceManagement = () => {
 
   // Handle adding a new resource
   const handleAddResource = async () => {
-    if (!newResource.name || !newResource.type || !newResource.capacity) {
+    if (!newResourceForm.name || !newResourceForm.type || !newResourceForm.capacity) {
       alert("Please fill in all required fields")
       return
     }
@@ -980,9 +1035,9 @@ const ResourceManagement = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: newResource.name,
-          type: newResource.type,
-          capacity: newResource.capacity,
+          name: newResourceForm.name,
+          type: newResourceForm.type,
+          capacity: newResourceForm.capacity,
         }),
       })
 
@@ -994,15 +1049,15 @@ const ResourceManagement = () => {
 
       const newResourceWithId: Resource = {
         id: `${resources.length + 1}`,
-        name: newResource.name ?? "",
-        type: newResource.type ?? "Room",
-        capacity: newResource.capacity ?? 0,
-        accessibility: newResource.accessibility ?? [],
+        name: newResourceForm.name ?? "",
+        type: newResourceForm.type ?? "Room",
+        capacity: newResourceForm.capacity ?? 0,
+        accessibility: newResourceForm.accessibility ?? [],
       }
 
       setResources([...resources, newResourceWithId])
       setShowAddResourceDialog(false)
-      setNewResource({
+      setNewResourceForm({
         name: "",
         type: "Room",
         capacity: 0,
@@ -1016,11 +1071,14 @@ const ResourceManagement = () => {
     }
   }
 
-  const handleEditResource = async (resourceId: string, updatedResource: {
-    name: string
-    type: string
-    capacity: number
-  }) => {
+  const handleEditResource = async (
+    resourceId: string,
+    updatedResource: {
+      name: string
+      type: string
+      capacity: number
+    },
+  ) => {
     try {
       const response = await fetch(`http://127.0.0.1:8010/resource-update/${resourceId}`, {
         method: "PUT",
@@ -1036,52 +1094,57 @@ const ResourceManagement = () => {
 
       const result = await response.json()
 
-      setResources(prevResources =>
-        prevResources.map(resource =>
-          resource.id === resourceId ? { ...resource, ...updatedResource } : resource
-        )
+      setResources((prevResources) =>
+        prevResources.map((resource) => (resource.id === resourceId ? { ...resource, ...updatedResource } : resource)),
       )
     } catch (error: unknown) {
       console.error("Error updating resource:", error)
       alert("Error updating resource: " + (error instanceof Error ? error.message : "Unknown error"))
     }
   }
-  // Handle updating resource maintenance
-  const handleUpdateMaintenance = () => {
+  // Handle updating resource assignment
+  const handleUpdateMaintenance = async () => {
     if (!selectedResource) return
 
-    // In a real app, this would make an API call to update the resource
-    const updatedResources = resources.map((resource) =>
-      resource.id === selectedResource.id
-        ? {
-            ...resource,
-            status: maintenanceForm.status as "available" | "under_maintenance" | "restricted",
-            maintenanceNotes: maintenanceForm.notes,
-            maintenancePersons: maintenanceForm.persons
-              ? maintenanceForm.persons.split(",").map((p) => p.trim())
-              : undefined,
-            lastMaintenance:
-              maintenanceForm.status === "available"
-                ? new Date().toISOString().split("T")[0]
-                : resource.lastMaintenance,
-            nextMaintenance: maintenanceForm.toDate,
-          }
-        : resource,
-    )
+    try {
+      // In a real app, this would make an API call to update the resource
+      const updatedResources = resources.map((resource) =>
+        resource.id === selectedResource.id
+          ? {
+              ...resource,
+              maintained: maintenanceForm.persons,
+              maintenanceNotes: maintenanceForm.notes,
+            }
+          : resource,
+      )
 
-    setResources(updatedResources)
-    setShowMaintenanceDialog(false)
+      setResources(updatedResources)
+      setShowMaintenanceDialog(false)
+
+      // This would be an API call in a real application
+      // await fetch(`http://127.0.0.1:8010/resource-assign/${selectedResource.id}`, {
+      //   method: "PUT",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     maintained_by: maintenanceForm.persons,
+      //     notes: maintenanceForm.notes
+      //   }),
+      // })
+    } catch (error) {
+      console.error("Error updating assignment:", error)
+      alert("Error updating assignment")
+    }
   }
 
-  // Handle opening the maintenance dialog
+  // Handle opening the assignment dialog
   const handleOpenMaintenanceDialog = (resource: Resource) => {
     setSelectedResource(resource)
     setMaintenanceForm({
-      status: resource.status ?? "available",
+      status: "available", // This is less relevant for assignments but keeping for compatibility
       notes: resource.maintenanceNotes || "",
-      persons: resource.maintenancePersons?.join(", ") || "",
-      fromDate: new Date().toISOString().split("T")[0],
-      toDate: resource.nextMaintenance || "",
+      persons: resource.maintained || "",
+      fromDate: "", // No longer needed
+      toDate: "", // No longer needed
     })
     setShowMaintenanceDialog(true)
   }
@@ -1123,10 +1186,47 @@ const ResourceManagement = () => {
         throw new Error("Failed to delete resource")
       }
 
-      setResources(prev => prev.filter(resource => resource.id !== id))
+      setResources((prev) => prev.filter((resource) => resource.id !== id))
     } catch (error) {
       console.error("Delete error:", error)
       alert("Error deleting resource.")
+    }
+  }
+
+  // Add these functions to handle assignment
+  const handleOpenAssignmentDialog = (person: Person) => {
+    setSelectedPerson(person)
+    // Make sure we're setting the correct resource ID from the person object
+    setSelectedResourceId(person.resource_assigned ? String(person.resource_assigned) : "0")
+    setAssignmentNotes("")
+    setShowAssignmentDialog(true)
+  }
+
+  const handleUpdateAssignment = async () => {
+    if (!selectedPerson) return
+
+    try {
+      // Make API call to assign the person to a resource
+      // Reverting to the original approach that was working before
+      const response = await fetch(
+        `http://127.0.0.1:8010/assign-people?person_id=${selectedPerson.id}&resource=${selectedResourceId || 0}`,
+        {
+          method: "PUT",
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to update assignment")
+      }
+
+      // Get the updated data from the server
+      const updatedPeopleResponse = await axios.get("http://127.0.0.1:8010/get-people")
+      setPeople(updatedPeopleResponse.data)
+
+      setShowAssignmentDialog(false)
+    } catch (error) {
+      console.error("Error updating assignment:", error)
+      alert("Error updating assignment")
     }
   }
 
@@ -1160,7 +1260,9 @@ const ResourceManagement = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium text-white">Manage Resources</h3>
-              <Button onClick={() => setShowAddResourceDialog(true)}><Plus className="h-4 w-4 mr-1" /> Add New Resource</Button>
+              <Button onClick={() => setShowAddResourceDialog(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Add New Resource
+              </Button>
             </div>
 
             <div className="relative">
@@ -1200,7 +1302,8 @@ const ResourceManagement = () => {
                               setShowEditDialog(true)
                             }}
                           >
-                            <Edit className="h-4 w-4" /><span className="sr-only">Edit</span>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
                           </Button>
                           {showEditDialog && (
                             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
@@ -1212,18 +1315,18 @@ const ResourceManagement = () => {
                                   <Input
                                     placeholder="Name"
                                     value={editForm.name ?? ""}
-                                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                                   />
                                   <Input
                                     placeholder="Type"
                                     value={editForm.type ?? ""}
-                                    onChange={e => setEditForm({ ...editForm, type: e.target.value })}
+                                    onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
                                   />
                                   <Input
                                     type="number"
                                     placeholder="Capacity"
                                     value={editForm.capacity ?? 0}
-                                    onChange={e => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
+                                    onChange={(e) => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
                                   />
                                 </div>
                                 <DialogFooter>
@@ -1248,8 +1351,14 @@ const ResourceManagement = () => {
                               </DialogContent>
                             </Dialog>
                           )}
-                          <Button variant="outline" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteResource(resource.id)}>
-                            <Trash2 className="h-4 w-4" /><span className="sr-only">Delete</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-400 hover:text-red-300"
+                            onClick={() => handleDeleteResource(resource.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
                           </Button>
                         </div>
                       </td>
@@ -1276,16 +1385,16 @@ const ResourceManagement = () => {
                     <Label htmlFor="name">Resource Name *</Label>
                     <Input
                       id="name"
-                      value={newResource.name ?? ""}
-                      onChange={(e) => setNewResource({ ...newResource, name: e.target.value })}
+                      value={newResourceForm.name ?? ""}
+                      onChange={(e) => setNewResourceForm({ ...newResourceForm, name: e.target.value })}
                       className="bg-gray-800 border-gray-700 text-white"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="type">Resource Type *</Label>
                     <Select
-                      value={newResource.type ?? "Room"}
-                      onValueChange={(value) => setNewResource({ ...newResource, type: value })}
+                      value={newResourceForm.type ?? "Room"}
+                      onChange={(value) => setNewResourceForm({ ...newResourceForm, type: value })}
                       className="bg-gray-800 border-gray-700 text-white"
                     >
                       <SelectItem value="Lab">Lab</SelectItem>
@@ -1299,121 +1408,102 @@ const ResourceManagement = () => {
                   <Input
                     id="capacity"
                     type="number"
-                    value={newResource.capacity}
-                    onChange={(e) => setNewResource({ ...newResource, capacity: Number.parseInt(e.target.value) })}
+                    value={newResourceForm.capacity}
+                    onChange={(e) =>
+                      setNewResourceForm({ ...newResourceForm, capacity: Number.parseInt(e.target.value) })
+                    }
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
                 <Button onClick={handleAddResource}>Add Resource</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>
 
-        {/* Maintenance */}
+        {/* People Assignments */}
         <TabsContent value="maintenance" className="mt-6 flex-1">
           <div className="space-y-6">
-            <h3 className="text-lg font-medium text-white">Maintenance Dashboard</h3>
+            <h3 className="text-lg font-medium text-white">People Assignments</h3>
 
             <div className="border border-gray-700 rounded-md overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-800 text-gray-200">
-                    <th className="p-3 text-left">Resource Name</th>
-                    <th className="p-3 text-left">Assigned to</th>
+                    <th className="p-3 text-left">Person Name</th>
+                    <th className="p-3 text-left">Occupation</th>
+                    <th className="p-3 text-left">Contact</th>
+                    <th className="p-3 text-left">Assigned Resource</th>
                     <th className="p-3 text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {resources.map((resource) => (
-                    <tr key={resource.id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="p-3 text-white">{resource.name}</td>
-                      <td className="p-3 text-white">{resource.maintained}</td>
-                      <td className="p-3">
-                        <Button variant="outline" size="sm" onClick={() => handleOpenMaintenanceDialog(resource)}>
-                          Manage
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {people.map((person) => {
+                    const assignedResource = resources.find((r) => r.id === person.resource_assigned)
+                    return (
+                      <tr key={person.id} className="border-t border-gray-700 hover:bg-gray-700">
+                        <td className="p-3 text-white">{person.name}</td>
+                        <td className="p-3 text-white">{person.occupation}</td>
+                        <td className="p-3 text-white">{person.contact_number}</td>
+                        <td className="p-3 text-white">{assignedResource ? assignedResource.name : "None"}</td>
+                        <td className="p-3">
+                          <Button variant="outline" size="sm" onClick={() => handleOpenAssignmentDialog(person)}>
+                            Assign
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
+
+              {people.length === 0 && <div className="p-8 text-center text-gray-400">No people found.</div>}
             </div>
           </div>
 
-          {/* Maintenance Dialog */}
-          <Dialog open={showMaintenanceDialog} onOpenChange={setShowMaintenanceDialog}>
+          {/* Assignment Dialog */}
+          <Dialog open={showAssignmentDialog} onOpenChange={setShowAssignmentDialog}>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
-                <DialogTitle>{selectedResource ? `Maintenance: ${selectedResource.name}` : 'Maintenance'}</DialogTitle>
+                <DialogTitle>
+                  {selectedPerson ? `Assign Resource to: ${selectedPerson.name}` : "Resource Assignment"}
+                </DialogTitle>
               </DialogHeader>
-              {selectedResource && (
+              {selectedPerson && (
                 <div className="space-y-4 py-4">
                   <div className="p-3 bg-gray-800 border border-gray-700 rounded-md">
-                    <div className="font-medium text-white">{selectedResource.name}</div>
-                    <div className="text-sm text-gray-300">{selectedResource.location ?? "No location specified"}</div>
-                    <div className="text-sm mt-1 text-gray-300">
-                      <span className="font-medium text-white">Type:</span> {selectedResource.type}
-                    </div>
+                    <div className="font-medium text-white">{selectedPerson.name}</div>
+                    <div className="text-sm text-gray-300">Occupation: {selectedPerson.occupation}</div>
+                    <div className="text-sm text-gray-300">Contact: {selectedPerson.contact_number}</div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="status">Maintenance Status</Label>
+                    <Label htmlFor="resources">Assign Resource</Label>
                     <Select
-                      value={maintenanceForm.status ?? "available"}
-                      onValueChange={(value) => setMaintenanceForm({ ...maintenanceForm, status: value })}
+                      value={selectedResourceId}
+                      onValueChange={setSelectedResourceId}
                       className="bg-gray-800 border-gray-700 text-white"
                     >
-                      <SelectItem value="available">Available</SelectItem>
-                      <SelectItem value="under_maintenance">Under Maintenance</SelectItem>
-                      <SelectItem value="restricted">Restricted Use</SelectItem>
+                      <SelectItem value="0">None</SelectItem>
+                      {resources.map((resource) => (
+                        <SelectItem key={resource.id} value={resource.id}>
+                          {resource.name} ({resource.type})
+                        </SelectItem>
+                      ))}
                     </Select>
                   </div>
 
-                  {maintenanceForm.status !== 'available' && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="fromDate">From Date</Label>
-                          <Input
-                            type="date"
-                            value={maintenanceForm.fromDate}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, fromDate: e.target.value })}
-                            className="bg-gray-800 border-gray-700 text-white"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="toDate">To Date</Label>
-                          <Input
-                            type="date"
-                            value={maintenanceForm.toDate}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, toDate: e.target.value })}
-                            className="bg-gray-800 border-gray-700 text-white"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="persons">Maintenance Persons</Label>
-                        <Input
-                          placeholder="e.g. John Doe, Jane Smith"
-                          value={maintenanceForm.persons ?? ""}
-                          onChange={(e) => setMaintenanceForm({ ...maintenanceForm, persons: e.target.value })}
-                          className="bg-gray-800 border-gray-700 text-white"
-                        />
-                      </div>
-                    </>
-                  )}
-
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Maintenance Notes</Label>
+                    <Label htmlFor="notes">Assignment Notes</Label>
                     <Textarea
-                      placeholder="Enter maintenance details or restrictions"
-                      value={maintenanceForm.notes ?? ""}
-                      onChange={(e) => setMaintenanceForm({ ...maintenanceForm, notes: e.target.value })}
+                      placeholder="Enter assignment details or special instructions"
+                      value={assignmentNotes}
+                      onChange={(e) => setAssignmentNotes(e.target.value)}
                       rows={4}
                       className="bg-gray-800 border-gray-700 text-white"
                     />
@@ -1421,8 +1511,10 @@ const ResourceManagement = () => {
                 </div>
               )}
               <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                <Button onClick={handleUpdateMaintenance}>Update Maintenance</Button>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleUpdateAssignment}>Update Assignment</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

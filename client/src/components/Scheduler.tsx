@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Calendar, Clock, FileText, MapPin, User } from "lucide-react";
 import axios from 'axios';
+import API_CONFIG from '../lib/config';
 
 interface ExamForm {
   title: string;
@@ -106,7 +107,7 @@ const Scheduler = () => {
       
       try {
         // Fetch assignments
-        const assignmentsResponse = await axios.get<AssignmentResponse[]>('/api/assignments');
+        const assignmentsResponse = await axios.get<AssignmentResponse[]>(API_CONFIG.SCHEDULE.ALL_ASSIGNMENTS);
         
         // Convert API response to ScheduledItem format
         const formattedAssignments: ScheduledItem[] = assignmentsResponse.data.map(assignment => {
@@ -124,7 +125,7 @@ const Scheduler = () => {
         setScheduledAssignments(formattedAssignments);
         
         // Fetch exams
-        const examsResponse = await axios.get<ExamResponse[]>('/api/exams');
+        const examsResponse = await axios.get<ExamResponse[]>(API_CONFIG.SCHEDULE.ALL_EXAMS);
         
         // Convert API response to ScheduledItem format
         const formattedExams: ScheduledItem[] = examsResponse.data.map(exam => {
@@ -230,7 +231,7 @@ const Scheduler = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/exams', {
+      const response = await fetch(API_CONFIG.SCHEDULE.EXAMS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -293,7 +294,7 @@ const Scheduler = () => {
       const dueDateTimeISO = `${assignmentForm.due_date}T${assignmentForm.due_time}:00`;
       
       // Make API call
-      const response = await fetch('/api/assignments', {
+      const response = await fetch(API_CONFIG.SCHEDULE.ASSIGNMENTS, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

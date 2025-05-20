@@ -1170,7 +1170,7 @@ const StudentDashboard: React.FC = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch("http://localhost:8100/user", {
+        const response = await fetch(API_CONFIG.AUTH.USER, {
           credentials: "include",
         })
 
@@ -1221,7 +1221,7 @@ const StudentDashboard: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:8100/logout", {
+      const response = await fetch(API_CONFIG.AUTH.LOGOUT, {
         method: "GET",
         credentials: "include",
       })

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { Book, User, Monitor, Calendar, Search, Cctv } from "lucide-react";
+import API_CONFIG from "../lib/config";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,7 +15,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     // Fetch user info to get role
-    fetch('http://localhost:8100/user', {
+    fetch(API_CONFIG.AUTH.USER, {
       credentials: 'include',
       headers: {
         'Accept': 'application/json',

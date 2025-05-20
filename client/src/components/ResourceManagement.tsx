@@ -49,16 +49,32 @@ interface Resource {
   name: string
   type: string
   capacity: number
+  location?: string
+  status?: "available" | "under_maintenance" | "restricted"
+  maintenanceNotes?: string
+  maintenancePersons?: string[]
+  lastMaintenance?: string
+  nextMaintenance?: string
+  maintained?: string
+  accessibility?: string[]
 }
 
 // Booking interface
-type Booking = {
-  id: number
-  bookedBy: string
+interface Booking {
+  id: string
+  resourceId?: string
   resourceName: string
+  userId?: string
+  userName?: string
   date: string
   startTime: string
   endTime: string
+  purpose?: string
+  status?: "confirmed" | "cancelled" | "pending"
+  location?: string
+  resource?: Resource
+  createdAt?: string
+  bookedBy?: string
 }
 
 // Mock data for resources
@@ -190,7 +206,7 @@ const CalendarDay = ({
               <tr key={resource.id} className="border-t border-gray-700">
                 <td className="p-2 border-r border-gray-700">
                   <div className="font-medium text-white">{resource.name}</div>
-                  <div className="text-xs text-gray-400">{resource.location}</div>
+                  <div className="text-xs text-gray-400">{resource.location ?? "No location specified"}</div>
                 </td>
                 {timeSlots.map((slot) => {
                   const booking = bookings.find(
@@ -235,109 +251,22 @@ const CalendarDay = ({
     </div>
   )
 }
-// const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
-
-// // Calendar day component
-// const CalendarDay = ({
-//   date,
-//   resources,
-//   bookings,
-//   onBookResource,
-// }: {
-//   date: string
-//   resources: Resource[]
-//   bookings: Booking[]
-//   onBookResource: (resource: Resource, timeSlot: string) => void
-// }) => {
-//   return (
-//     <div className="border rounded-md overflow-hidden">
-//       <div className="bg-gray-800 text-white p-3 font-medium">
-//         {new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-//       </div>
-//       <div className="overflow-x-auto">
-//         <table className="w-full">
-//           <thead>
-//             <tr className="bg-gray-100">
-//               <th className="p-2 border-r text-left">Resource</th>
-//               {timeSlots.map((slot) => (
-//                 <th key={slot} className="p-2 border-r text-center min-w-[80px]">
-//                   {slot}
-//                 </th>
-//               ))}
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {resources.map((resource) => (
-//               <tr key={resource.id} className="border-t">
-//                 <td className="p-2 border-r">
-//                   <div className="font-medium">{resource.name}</div>
-//                   <div className="text-xs text-gray-500">{resource.location}</div>
-//                 </td>
-//                 {timeSlots.map((slot) => {
-//                   // Check if this slot is booked for this resource
-//                   const isBooked = bookings.some(
-//                     (booking) =>
-//                       booking.resourceId === resource.id &&
-//                       booking.date === date &&
-//                       booking.startTime <= slot &&
-//                       booking.endTime > slot &&
-//                       booking.status === "confirmed",
-//                   )
-
-//                   // Check if resource is under maintenance
-//                   const isUnderMaintenance = resource.status === "under_maintenance"
-
-//                   let cellClass = "p-2 border-r text-center cursor-pointer"
-//                   if (isBooked) {
-//                     cellClass += " bg-red-100"
-//                   } else if (isUnderMaintenance) {
-//                     cellClass += " bg-yellow-100"
-//                   } else {
-//                     cellClass += " bg-green-100 hover:bg-green-200"
-//                   }
-
-//                   return (
-//                     <td
-//                       key={`${resource.id}-${slot}`}
-//                       className={cellClass}
-//                       onClick={() => {
-//                         if (!isBooked && !isUnderMaintenance) {
-//                           onBookResource(resource, slot)
-//                         }
-//                       }}
-//                     >
-//                       {isBooked ? (
-//                         <span className="text-xs font-medium text-red-600">Booked</span>
-//                       ) : isUnderMaintenance ? (
-//                         <span className="text-xs font-medium text-yellow-600">Maintenance</span>
-//                       ) : (
-//                         <span className="text-xs font-medium text-green-600">Available</span>
-//                       )}
-//                     </td>
-//                   )
-//                 })}
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   )
-// }
 
 // Available Resources component
 const AvailableResources = () => {
-
   const getTodayDateString = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0'); // months are 0-indexed
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-  };
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, "0")
+    const day = String(today.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString())
   const [resourceType, setResourceType] = useState<string>("all")
   const [capacity, setCapacity] = useState<string>("all")
   const [location, setLocation] = useState<string>("all")
@@ -346,6 +275,7 @@ const AvailableResources = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("")
   const [bookingDuration, setBookingDuration] = useState<string>("1")
   const [bookingPurpose, setBookingPurpose] = useState<string>("")
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -380,7 +310,7 @@ const AvailableResources = () => {
       if (max && (resource.capacity < min || resource.capacity > max)) return false
       if (!max && resource.capacity < min) return false
     }
-    if (location !== "all" && !resource.location.includes(location)) return false
+    if (location !== "all" && !(resource.location ?? "").includes(location)) return false
     return true
   })
   useEffect(() => {
@@ -423,31 +353,12 @@ const AvailableResources = () => {
     setSelectedTimeSlot(timeSlot)
     setShowBookingDialog(true)
   }
-  const [user, setUser] = useState<User | null>(null)
-  const fetchUser = async (): Promise<User | null> => {
-    try {
-      const response = await fetch("http://localhost:8100/user", {
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error("Authentication failed")
-      }
-
-      const userData: User = await response.json()
-      setUser(userData)
-      return userData
-    } catch (err) {
-      console.log("Error in getting user:", err)
-      return null
-    }
-  }
 
   // Handle confirming a booking
   const handleConfirmBooking = async () => {
     const user = await fetchUser()
-    if (!user || !user.id) {
-      console.error("User not authenticated")
+    if (!user || !user.id || !selectedResource) {
+      console.error("User not authenticated or resource not selected")
       return
     }
 
@@ -459,8 +370,6 @@ const AvailableResources = () => {
       const [hour, minute] = time.split(":")
       return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`
     }
-
-
 
     const bookingData = {
       booked_by: user.id,
@@ -504,7 +413,24 @@ const AvailableResources = () => {
     return `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
   }
 
+  const fetchUser = async (): Promise<User | null> => {
+    try {
+      const response = await fetch("http://localhost:8100/user", {
+        credentials: "include",
+      })
 
+      if (!response.ok) {
+        throw new Error("Authentication failed")
+      }
+
+      const userData: User = await response.json()
+      setUser(userData)
+      return userData
+    } catch (err) {
+      console.log("Error in getting user:", err)
+      return null
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -590,7 +516,7 @@ const AvailableResources = () => {
                   <Label>Selected Resource</Label>
                   <div className="p-3 bg-gray-800 border border-gray-700 rounded-md">
                     <div className="font-medium text-white">{selectedResource.name}</div>
-                    <div className="text-sm text-gray-300">{selectedResource.location}</div>
+                    <div className="text-sm text-gray-300">{selectedResource.location ?? "No location specified"}</div>
                     <div className="text-sm mt-1 text-gray-300">
                       <span className="font-medium text-white">Capacity:</span> {selectedResource.capacity} people
                     </div>
@@ -715,214 +641,215 @@ const BookedResources = () => {
     startTime: "",
     endTime: "",
   })
-  const handleEditBooking = (booking) => {
-  setEditBookingForm({
+  const handleEditBooking = (booking: Booking) => {
+    setEditBookingForm({
+      id: booking.id,
+      date: booking.date,
+      startTime: formatTimeToHHMM(booking.startTime),
+      endTime: formatTimeToHHMM(booking.endTime),
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleDeleteBooking = async (bookingId: string) => {
+    try {
+      const response = await fetch("http://127.0.0.1:8010/delete-booking", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: bookingId }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.status === "success") {
+        setBookings(prev => prev.filter(b => b.id !== bookingId))
+      } else {
+        throw new Error(data.message || "Failed to delete booking")
+      }
+    } catch (error: unknown) {
+      console.error("Delete failed:", error)
+      alert("Error deleting booking: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
+  }
+
+  const formatTimeToHHMM = (timeString: string): string => {
+    if (!timeString) return ""
+    return timeString.slice(0, 5)
+  }
+
+  const normalizeBooking = (booking: any): Booking => ({
     id: booking.id,
-    date: booking.date,
-    startTime: formatTimeToHHMM(booking.startTime),
-    endTime: formatTimeToHHMM(booking.endTime),
-  });
-  setShowEditDialog(true);
-};
+    createdAt: booking.created_at,
+    bookedBy: booking.booked_by,
+    resourceName: booking.resource_name,
+    date: booking.booking_on,
+    startTime: formatTimeToHHMM(booking.start_time),
+    endTime: formatTimeToHHMM(booking.end_time),
+  })
 
-const handleDeleteBooking = async (bookingId: number) => {
-  try {
-    const response = await fetch("http://127.0.0.1:8010/delete-booking", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ booking_id: bookingId }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.status === "success") {
-      // Remove the deleted booking from state
-      setBookings(prev => prev.filter(b => b.id !== bookingId));
-    } else {
-      throw new Error(data.message || "Failed to delete booking");
+  const handleSaveEditedBooking = async () => {
+    const body = {
+      ...editBookingForm,
+      date: formatDateToYYYYMMDD(editBookingForm.date),
     }
-  } catch (error) {
-    console.error("Delete failed:", error);
-    alert("Error deleting booking: " + error.message);
-  }
-};
-const formatTimeToHHMM = (timeString) => {
-  // timeString like "09:00:00"
-  if (!timeString) return "";
-  return timeString.slice(0, 5); // just take first 5 chars "HH:mm"
-}
-const normalizeBooking = (booking) => ({
-  id: booking.id,
-  createdAt: booking.created_at,       // if you need it
-  bookedBy: booking.booked_by,         // if you need it
-  resourceName: booking.resource_name, // camelCase for frontend
-  date: booking.booking_on,             // map booking_on → date
-  startTime: formatTimeToHHMM(booking.start_time),
-  endTime: formatTimeToHHMM(booking.end_time),   // adapt if backend sends end_time
-  // add other fields as needed
-});
-const handleSaveEditedBooking = async () => {
-  const body = {
-  ...editBookingForm,
-  date: formatDateToYYYYMMDD(editBookingForm.date),
-}
-  try {
-    const response = await fetch("http://127.0.0.1:8010/booking-update", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body), // make sure editBookingForm includes id, date, startTime, endTime etc
-    });
+    try {
+      const response = await fetch("http://127.0.0.1:8010/booking-update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body), // make sure editBookingForm includes id, date, startTime, endTime etc
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to update booking");
+      if (!response.ok) {
+        throw new Error("Failed to update booking");
+      }
+
+      const updated = await response.json();
+      const normalizedUpdated = normalizeBooking(updated);
+
+      setBookings(prev =>
+        prev.map(b => (b.id === normalizedUpdated.id ? normalizedUpdated : b))
+      );
+
+      setShowEditDialog(false);
+    } catch (error) {
+      console.error("Update failed:", error);
+      alert("Error updating booking");
     }
+  };
 
-    const updated = await response.json();
-    const normalizedUpdated = normalizeBooking(updated);
-
-    setBookings(prev =>
-      prev.map(b => (b.id === normalizedUpdated.id ? normalizedUpdated : b))
-    );
-
-    setShowEditDialog(false);
-  } catch (error) {
-    console.error("Update failed:", error);
-    alert("Error updating booking");
+  const formatDateToYYYYMMDD = (date: string): string => {
+    const d = new Date(date)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
   }
-};
-const formatDateToYYYYMMDD = (date) => {
-  const d = new Date(date)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
   if (loading) return <div>Loading...</div>
   if (error) return <div className="text-red-500">{error}</div>
 
   return (
-  <div className="space-y-6">
-    <h3 className="text-lg font-medium">Your Booked Resources</h3>
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Your Booked Resources</h3>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {bookings.length > 0 ? (
-        bookings.map((booking) => (
-          <Card key={booking.id} className="overflow-hidden">
-            <CardHeader className="bg-gray-800 text-white border-b border-gray-700 pb-2">
-              <CardTitle className="text-base">{booking.resourceName}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex items-start">
-                <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-400" />
-                <span>
-                  {booking.date ? (
-                    new Date(booking.date).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  ) : (
-                    <span className="text-gray-500 italic">No Date</span>
-                  )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {bookings.length > 0 ? (
+          bookings.map((booking) => (
+            <Card key={booking.id} className="overflow-hidden">
+              <CardHeader className="bg-gray-800 text-white border-b border-gray-700 pb-2">
+                <CardTitle className="text-base">{booking.resourceName}</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-start">
+                  <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-400" />
+                  <span>
+                    {booking.date ? (
+                      new Date(booking.date).toLocaleDateString("en-US", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    ) : (
+                      <span className="text-gray-500 italic">No Date</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-start">
+                  <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-400" />
+                  <span>
+                    {booking.startTime && booking.endTime ? (
+                      `${booking.startTime} - ${booking.endTime}`
+                    ) : (
+                      <span className="text-gray-500 italic">No Time Slot</span>
+                    )}
+                  </span>
+                </div>
 
-                </span>
-              </div>
-              <div className="flex items-start">
-                <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-400" />
-                <span>
-                  {booking.startTime && booking.endTime ? (
-                    `${booking.startTime} - ${booking.endTime}`
-                  ) : (
-                    <span className="text-gray-500 italic">No Time Slot</span>
-                  )}
-                </span>
-              </div>
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    size="sm"
+                    onClick={() => handleEditBooking(booking)}
+                    variant="secondary"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteBooking(booking.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-2 p-8 text-center text-gray-400 border border-gray-700 rounded-md">
+            You don't have any booked resources yet.
+          </div>
+        )}
+      </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-4">
-                <Button
-                  size="sm"
-                  onClick={() => handleEditBooking(booking)}
-                  variant="secondary"
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleDeleteBooking(booking.id)}
-                >
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))
-      ) : (
-        <div className="col-span-2 p-8 text-center text-gray-400 border border-gray-700 rounded-md">
-          You don't have any booked resources yet.
-        </div>
+      {/* Edit Dialog */}
+      {showEditDialog && (
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Booking</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                type="date"
+                placeholder="Date"
+                value={editBookingForm.date}
+                onChange={(e) =>
+                  setEditBookingForm({ ...editBookingForm, date: e.target.value })
+                }
+              />
+              <Input
+                type="time"
+                placeholder="Start Time"
+                value={editBookingForm.startTime}
+                onChange={(e) =>
+                  setEditBookingForm({ ...editBookingForm, startTime: e.target.value })
+                }
+              />
+              <Input
+                type="time"
+                placeholder="End Time"
+                value={editBookingForm.endTime}
+                onChange={(e) =>
+                  setEditBookingForm({ ...editBookingForm, endTime: e.target.value })
+                }
+              />
+            </div>
+            <DialogFooter className="flex justify-end gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setShowEditDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  await handleSaveEditedBooking()
+                  setShowEditDialog(false)
+                }}
+              >
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
-
-    {/* Edit Dialog */}
-    {showEditDialog && (
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Booking</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              type="date"
-              placeholder="Date"
-              value={editBookingForm.date}
-              onChange={(e) =>
-                setEditBookingForm({ ...editBookingForm, date: e.target.value })
-              }
-            />
-            <Input
-              type="time"
-              placeholder="Start Time"
-              value={editBookingForm.startTime}
-              onChange={(e) =>
-                setEditBookingForm({ ...editBookingForm, startTime: e.target.value })
-              }
-            />
-            <Input
-              type="time"
-              placeholder="End Time"
-              value={editBookingForm.endTime}
-              onChange={(e) =>
-                setEditBookingForm({ ...editBookingForm, endTime: e.target.value })
-              }
-            />
-          </div>
-          <DialogFooter className="flex justify-end gap-2 pt-4">
-            <Button variant="ghost" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
-                await handleSaveEditedBooking()
-                setShowEditDialog(false)
-              }}
-            >
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    )}
-  </div>
-)
-
+  )
 }
 
 // Resource Management component
 const ResourceManagement = () => {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [showAddResourceDialog, setShowAddResourceDialog] = useState<boolean>(false)
   const [showMaintenanceDialog, setShowMaintenanceDialog] = useState<boolean>(false)
@@ -976,80 +903,84 @@ const ResourceManagement = () => {
 
   // Handle adding a new resource
   const handleAddResource = async () => {
-  try {
-    const response = await fetch("http://127.0.0.1:8010/resource-insert", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: newResource.name,
-        type: newResource.type,
-        capacity: newResource.capacity,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error("Failed to insert resource")
+    if (!newResource.name || !newResource.type || !newResource.capacity) {
+      alert("Please fill in all required fields")
+      return
     }
 
-    const result = await response.json()
+    try {
+      const response = await fetch("http://127.0.0.1:8010/resource-insert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newResource.name,
+          type: newResource.type,
+          capacity: newResource.capacity,
+        }),
+      })
 
-    // Optionally, you might want to refresh the resource list from the backend
-    // or update the local state with the returned result
-    const newResourceWithId = {
-      ...newResource,
-      id: `${resources.length + 1}`, // ideally should come from API
-      accessibility: newResource.accessibility || [],
+      if (!response.ok) {
+        throw new Error("Failed to insert resource")
+      }
+
+      const result = await response.json()
+
+      const newResourceWithId: Resource = {
+        id: `${resources.length + 1}`,
+        name: newResource.name ?? "",
+        type: newResource.type ?? "Room",
+        capacity: newResource.capacity ?? 0,
+        accessibility: newResource.accessibility ?? [],
+      }
+
+      setResources([...resources, newResourceWithId])
+      setShowAddResourceDialog(false)
+      setNewResource({
+        name: "",
+        type: "Room",
+        capacity: 0,
+        location: "",
+        accessibility: [],
+        status: "available",
+      })
+    } catch (error: unknown) {
+      console.error("Error adding resource:", error)
+      alert("Error adding resource: " + (error instanceof Error ? error.message : "Unknown error"))
     }
-
-    setResources([...resources, newResourceWithId])
-    setShowAddResourceDialog(false)
-    setNewResource({
-      name: "",
-      type: "Room",
-      capacity: 0,
-      location: "",
-      accessibility: [],
-      status: "available",
-    })
-  } catch (error) {
-    console.error("Error adding resource:", error)
-    // Optionally show an error message to the user
   }
-}
 
-const handleEditResource = async (resourceId: number, updatedResource: {
-  name: string;
-  type: string;
-  capacity: number;
-}) => {
-  try {
-    const response = await fetch(`http://127.0.0.1:8010/resource-update/${resourceId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updatedResource),
-    })
+  const handleEditResource = async (resourceId: string, updatedResource: {
+    name: string
+    type: string
+    capacity: number
+  }) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8010/resource-update/${resourceId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedResource),
+      })
 
-    if (!response.ok) {
-      throw new Error("Failed to update resource")
-    }
+      if (!response.ok) {
+        throw new Error("Failed to update resource")
+      }
 
-    const result = await response.json()
+      const result = await response.json()
 
-    // Update the local state
-    setResources(prevResources =>
-      prevResources.map(resource =>
-        resource.id === resourceId ? { ...resource, ...updatedResource } : resource
+      setResources(prevResources =>
+        prevResources.map(resource =>
+          resource.id === resourceId ? { ...resource, ...updatedResource } : resource
+        )
       )
-    )
-  } catch (error) {
-    console.error("Error updating resource:", error)
-    // Optionally show an error message to the user
+    } catch (error: unknown) {
+      console.error("Error updating resource:", error)
+      alert("Error updating resource: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
   }
-}
   // Handle updating resource maintenance
   const handleUpdateMaintenance = () => {
     if (!selectedResource) return
@@ -1081,7 +1012,7 @@ const handleEditResource = async (resourceId: number, updatedResource: {
   const handleOpenMaintenanceDialog = (resource: Resource) => {
     setSelectedResource(resource)
     setMaintenanceForm({
-      status: resource.status,
+      status: resource.status ?? "available",
       notes: resource.maintenanceNotes || "",
       persons: resource.maintenancePersons?.join(", ") || "",
       fromDate: new Date().toISOString().split("T")[0],
@@ -1096,7 +1027,6 @@ const handleEditResource = async (resourceId: number, updatedResource: {
     type: "",
     capacity: 0,
   })
-
 
   // Filter resources based on search query
   const filteredResources = resources.filter(
@@ -1120,23 +1050,22 @@ const handleEditResource = async (resourceId: number, updatedResource: {
   }
 
   const handleDeleteResource = async (id: string) => {
-  try {
-    const response = await fetch(`http://127.0.0.1:8010/resource-delete/${id}`, {
-      method: "DELETE",
-    })
-    if (!response.ok) {
-      throw new Error("Failed to delete resource")
+    try {
+      const response = await fetch(`http://127.0.0.1:8010/resource-delete/${id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) {
+        throw new Error("Failed to delete resource")
+      }
+
+      setResources(prev => prev.filter(resource => resource.id !== id))
+    } catch (error) {
+      console.error("Delete error:", error)
+      alert("Error deleting resource.")
     }
-
-    // Optionally remove it from state if you're not refetching
-    setResources(prev => prev.filter(resource => resource.id !== id))
-  } catch (error) {
-    console.error("Delete error:", error)
-    alert("Error deleting resource.")
   }
-}
 
-return (
+  return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white tracking-tight">Resource Management</h1>
@@ -1208,48 +1137,52 @@ return (
                           >
                             <Edit className="h-4 w-4" /><span className="sr-only">Edit</span>
                           </Button>
-                            {showEditDialog && (
-                              <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Edit Resource</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <Input
-                                      placeholder="Name"
-                                      value={editForm.name}
-                                      onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                    />
-                                    <Input
-                                      placeholder="Type"
-                                      value={editForm.type}
-                                      onChange={e => setEditForm({ ...editForm, type: e.target.value })}
-                                    />
-                                    <Input
-                                      type="number"
-                                      placeholder="Capacity"
-                                      value={editForm.capacity}
-                                      onChange={e => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
-                                    />
-                                  </div>
-                                  <DialogFooter>
-                                    <DialogClose asChild>
-                                      <Button variant="outline">Cancel</Button>
-                                    </DialogClose>
-                                    <Button
-                                      onClick={async () => {
-                                        if (resourceBeingEdited) {
-                                          await handleEditResource(resourceBeingEdited.id, editForm)
-                                          setShowEditDialog(false)
-                                        }
-                                      }}
-                                    >
-                                      Save Changes
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-)}
+                          {showEditDialog && (
+                            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit Resource</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <Input
+                                    placeholder="Name"
+                                    value={editForm.name ?? ""}
+                                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                  />
+                                  <Input
+                                    placeholder="Type"
+                                    value={editForm.type ?? ""}
+                                    onChange={e => setEditForm({ ...editForm, type: e.target.value })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Capacity"
+                                    value={editForm.capacity ?? 0}
+                                    onChange={e => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
+                                  />
+                                </div>
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                  </DialogClose>
+                                  <Button
+                                    onClick={async () => {
+                                      if (resourceBeingEdited) {
+                                        await handleEditResource(resourceBeingEdited.id, {
+                                          name: editForm.name ?? "",
+                                          type: editForm.type ?? "Room",
+                                          capacity: editForm.capacity ?? 0,
+                                        })
+                                        setShowEditDialog(false)
+                                      }
+                                    }}
+                                  >
+                                    Save Changes
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
                           <Button variant="outline" size="sm" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteResource(resource.id)}>
                             <Trash2 className="h-4 w-4" /><span className="sr-only">Delete</span>
                           </Button>
@@ -1278,7 +1211,7 @@ return (
                     <Label htmlFor="name">Resource Name *</Label>
                     <Input
                       id="name"
-                      value={newResource.name}
+                      value={newResource.name ?? ""}
                       onChange={(e) => setNewResource({ ...newResource, name: e.target.value })}
                       className="bg-gray-800 border-gray-700 text-white"
                     />
@@ -1286,7 +1219,7 @@ return (
                   <div className="space-y-2">
                     <Label htmlFor="type">Resource Type *</Label>
                     <Select
-                      value={newResource.type}
+                      value={newResource.type ?? "Room"}
                       onValueChange={(value) => setNewResource({ ...newResource, type: value })}
                       className="bg-gray-800 border-gray-700 text-white"
                     >
@@ -1356,7 +1289,7 @@ return (
                 <div className="space-y-4 py-4">
                   <div className="p-3 bg-gray-800 border border-gray-700 rounded-md">
                     <div className="font-medium text-white">{selectedResource.name}</div>
-                    <div className="text-sm text-gray-300">{selectedResource.location}</div>
+                    <div className="text-sm text-gray-300">{selectedResource.location ?? "No location specified"}</div>
                     <div className="text-sm mt-1 text-gray-300">
                       <span className="font-medium text-white">Type:</span> {selectedResource.type}
                     </div>
@@ -1365,7 +1298,7 @@ return (
                   <div className="space-y-2">
                     <Label htmlFor="status">Maintenance Status</Label>
                     <Select
-                      value={maintenanceForm.status}
+                      value={maintenanceForm.status ?? "available"}
                       onValueChange={(value) => setMaintenanceForm({ ...maintenanceForm, status: value })}
                       className="bg-gray-800 border-gray-700 text-white"
                     >
@@ -1402,7 +1335,7 @@ return (
                         <Label htmlFor="persons">Maintenance Persons</Label>
                         <Input
                           placeholder="e.g. John Doe, Jane Smith"
-                          value={maintenanceForm.persons}
+                          value={maintenanceForm.persons ?? ""}
                           onChange={(e) => setMaintenanceForm({ ...maintenanceForm, persons: e.target.value })}
                           className="bg-gray-800 border-gray-700 text-white"
                         />
@@ -1414,7 +1347,7 @@ return (
                     <Label htmlFor="notes">Maintenance Notes</Label>
                     <Textarea
                       placeholder="Enter maintenance details or restrictions"
-                      value={maintenanceForm.notes}
+                      value={maintenanceForm.notes ?? ""}
                       onChange={(e) => setMaintenanceForm({ ...maintenanceForm, notes: e.target.value })}
                       rows={4}
                       className="bg-gray-800 border-gray-700 text-white"
@@ -1435,10 +1368,3 @@ return (
 }
 
 export default ResourceManagement
-function setLoading(arg0: boolean) {
-  throw new Error("Function not implemented.")
-}
-
-function setError(arg0: string) {
-  throw new Error("Function not implemented.")
-}

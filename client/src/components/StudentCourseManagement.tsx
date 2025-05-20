@@ -18,8 +18,10 @@ import {
   BarChart,
   Book,
   Calendar,
+  FileDown,
 } from "lucide-react";
 import API_CONFIG from "../lib/config";
+import { generateCourseManagementReport } from "../lib/pdf-generator";
 
 // Types for API response
 interface StudentInfo {
@@ -65,6 +67,7 @@ const StudentCourseManagement = () => {
   const [userProfile, setUserProfile] = useState<UserProfileResponse | null>(null);
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [usingMockData, setUsingMockData] = useState<boolean>(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
   // Function to generate mock data for development
   const generateMockData = (): UserProfileResponse => {
@@ -222,6 +225,32 @@ const StudentCourseManagement = () => {
     0
   );
 
+  // Function to generate PDF report
+  const handleGenerateReport = async () => {
+    if (!userProfile) return;
+    
+    try {
+      setIsGeneratingPdf(true);
+      
+      const studentName = `${userProfile.student_info.first_name} ${userProfile.student_info.last_name}`;
+      const studentEmail = userProfile.student_info.email;
+      
+      await generateCourseManagementReport(
+        studentName,
+        studentEmail,
+        overallAvgScore,
+        totalCoursesCompleted,
+        totalTimeSpent,
+        sortedCourses
+      );
+      
+    } catch (error) {
+      console.error("Error generating PDF report:", error);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -241,13 +270,26 @@ const StudentCourseManagement = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Course Management</h1>
-        <p className="text-gray-400">View and track your course performance</p>
-        {usingMockData && (
-          <div className="mt-2 px-3 py-1 bg-blue-900/30 border border-blue-500/50 text-blue-300 rounded-md text-sm">
-            Using sample data for demonstration purposes
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Course Management</h1>
+            <p className="text-gray-400">View and track your course performance</p>
+            {usingMockData && (
+              <div className="mt-2 px-3 py-1 bg-blue-900/30 border border-blue-500/50 text-blue-300 rounded-md text-sm">
+                Using sample data for demonstration purposes
+              </div>
+            )}
           </div>
-        )}
+          <Button
+            variant="outline"
+            className="border-blue-600 text-blue-400 hover:bg-blue-900/20 flex items-center gap-2"
+            onClick={handleGenerateReport}
+            disabled={isGeneratingPdf || !userProfile}
+          >
+            <FileDown className="h-4 w-4" />
+            {isGeneratingPdf ? 'Generating...' : 'Generate PDF Report'}
+          </Button>
+        </div>
       </div>
 
       {userProfile && (

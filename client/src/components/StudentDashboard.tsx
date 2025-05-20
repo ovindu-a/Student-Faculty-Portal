@@ -22,15 +22,17 @@ import {
   AlertCircle,
   Search,
   Camera,
+  FileDown,
 } from "lucide-react"
 import Scheduler from "./Scheduler"
-import ResourceManagement from "./ResourceManagement"
+import ResourceManagement from "./ResourceManagementStudent"
 import StudentCourseManagement from "./StudentCourseManagement"
 import API_CONFIG from "../lib/config"
 import axios from "axios"
 import { Badge } from "./ui/badge"
 import { CardFooter } from "./ui/card"
 import { CardDescription } from "./ui/card"
+import { generateAcademicPerformanceReport } from "../lib/pdf-generator"
 
 // Simple Select Component
 const Select = ({
@@ -839,6 +841,7 @@ const AcademicPerformance = () => {
   const [courseRecommendations, setCourseRecommendations] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("results");
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -925,11 +928,57 @@ const AcademicPerformance = () => {
     (sum: number, course: any) => sum + course.average_score, 0
   ) / courseResults?.course_results?.length || 0;
 
+  // Function to generate PDF report
+  const handleGeneratePdf = async () => {
+    if (!courseResults || !studyRecommendations) return;
+    
+    try {
+      setIsGeneratingPdf(true);
+      
+      // Get user name from localStorage or use default
+      const userId = localStorage.getItem("user_id");
+      let studentName = "Student";
+      
+      // Extract student name from recommendation if available
+      if (studyRecommendations?.recommendations?.recommendations?.[0]?.current_progress) {
+        const progressInfo = studyRecommendations.recommendations.recommendations[0].current_progress;
+        const nameMatch = progressInfo.match(/You have achieved|You scored|You've achieved/);
+        if (nameMatch && nameMatch.index && nameMatch.index > 10) {
+          studentName = progressInfo.substring(0, nameMatch.index).trim();
+        }
+      }
+      
+      await generateAcademicPerformanceReport(
+        overallAverage,
+        courseResults.course_results,
+        studyRecommendations,
+        studentName
+      );
+    } catch (error) {
+      console.error("Error generating academic PDF report:", error);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Academic Performance</h1>
-        <p className="text-gray-400">Track your academic progress and get personalized recommendations</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Academic Performance</h1>
+            <p className="text-gray-400">Track your academic progress and get personalized recommendations</p>
+          </div>
+          <Button
+            variant="outline"
+            className="border-blue-600 text-blue-400 hover:bg-blue-900/20 flex items-center gap-2"
+            onClick={handleGeneratePdf}
+            disabled={isGeneratingPdf || loading || !!error}
+          >
+            <FileDown className="h-4 w-4" />
+            {isGeneratingPdf ? 'Generating...' : 'Generate PDF Report'}
+          </Button>
+        </div>
       </div>
       
       {/* Overall Performance Card */}
@@ -1271,7 +1320,7 @@ const StudentDashboard: React.FC = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
+              className="w-half flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout

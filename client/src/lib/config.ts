@@ -71,6 +71,18 @@ export const API_CONFIG = {
     BOOKINGS: `${urls.RESOURCES}/get-bookings`,
     USER_BOOKINGS: `${urls.RESOURCES}/get-bookings-user`,
     CREATE_BOOKING: `${urls.RESOURCES}/create-booking`,
+    DELETE_BOOKING: `${urls.RESOURCES}/delete-booking`,
+    UPDATE_BOOKING: `${urls.RESOURCES}/booking-update`,
+    INSERT_RESOURCE: `${urls.RESOURCES}/resource-insert`,
+    UPDATE_RESOURCE: `${urls.RESOURCES}/resource-update`,
+    DELETE_RESOURCE: `${urls.RESOURCES}/resource-delete`,
+    GET_PEOPLE: `${urls.RESOURCES}/get-people`,
+    ASSIGN_PEOPLE: `${urls.RESOURCES}/assign-people`,
+  },
+
+  REPORTS: {
+    COURSE_MANAGEMENT: `${urls.STUDENT}/reports/course-management`,
+    ACADEMIC_PERFORMANCE: `${urls.STUDENT}/reports/academic-performance`,
   },
 
   // Schedule endpoints

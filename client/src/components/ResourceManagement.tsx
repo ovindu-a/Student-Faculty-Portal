@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
 import axios from "axios"
+import { API_CONFIG } from "../lib/config"
 
 // Simple Select Component
 const Select = ({
@@ -299,7 +300,7 @@ const AvailableResources = () => {
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8010/get-resources")
+        const response = await axios.get(API_CONFIG.RESOURCES.ALL)
         const data = response.data
 
         // Optional: transform keys if needed
@@ -335,7 +336,7 @@ const AvailableResources = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8010/get-bookings")
+        const response = await axios.get(API_CONFIG.RESOURCES.BOOKINGS)
         const rawData = response.data
 
         const formattedBookings: Booking[] = rawData.map((b: any) => {
@@ -399,7 +400,7 @@ const AvailableResources = () => {
     }
     console.log(bookingData)
     try {
-      const response = await fetch("http://127.0.0.1:8010/create-booking", {
+      const response = await fetch(API_CONFIG.RESOURCES.CREATE_BOOKING, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -447,7 +448,7 @@ const AvailableResources = () => {
 
   const fetchUser = async (): Promise<User | null> => {
     try {
-      const response = await fetch("http://localhost:8100/user", {
+      const response = await fetch(API_CONFIG.AUTH.USER, {
         credentials: "include",
       })
 
@@ -612,7 +613,7 @@ const BookedResources = () => {
 
   const fetchUser = async (): Promise<User | null> => {
     try {
-      const response = await fetch("http://localhost:8100/user", {
+      const response = await fetch(API_CONFIG.AUTH.USER, {
         credentials: "include",
       })
 
@@ -642,7 +643,7 @@ const BookedResources = () => {
 
         console.log("Sending user ID:", user.id)
 
-        const response = await axios.get("http://127.0.0.1:8010/get-bookings-user", {
+        const response = await axios.get(API_CONFIG.RESOURCES.USER_BOOKINGS, {
           params: { userid: user.id },
         })
 
@@ -686,7 +687,7 @@ const BookedResources = () => {
 
   const handleDeleteBooking = async (bookingId: string) => {
     try {
-      const response = await fetch("http://127.0.0.1:8010/delete-booking", {
+      const response = await fetch(API_CONFIG.RESOURCES.DELETE_BOOKING, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ booking_id: bookingId }),
@@ -726,7 +727,7 @@ const BookedResources = () => {
       date: formatDateToYYYYMMDD(editBookingForm.date),
     }
     try {
-      const response = await fetch("http://127.0.0.1:8010/booking-update", {
+      const response = await fetch(API_CONFIG.RESOURCES.UPDATE_BOOKING, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -964,7 +965,7 @@ const ResourceManagement = () => {
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8010/get-resources")
+        const response = await axios.get(API_CONFIG.RESOURCES.ALL)
         const data = response.data
 
         // Optional: transform keys if needed
@@ -992,7 +993,7 @@ const ResourceManagement = () => {
   useEffect(() => {
     const fetchPeople = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8010/get-people")
+        const response = await axios.get(API_CONFIG.RESOURCES.GET_PEOPLE)
         setPeople(response.data)
       } catch (error) {
         console.error("Error fetching people:", error)
@@ -1029,7 +1030,7 @@ const ResourceManagement = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:8010/resource-insert", {
+      const response = await fetch(API_CONFIG.RESOURCES.INSERT_RESOURCE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1080,7 +1081,7 @@ const ResourceManagement = () => {
     },
   ) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8010/resource-update/${resourceId}`, {
+      const response = await fetch(`${API_CONFIG.RESOURCES.UPDATE_RESOURCE}/${resourceId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1179,7 +1180,7 @@ const ResourceManagement = () => {
 
   const handleDeleteResource = async (id: string) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8010/resource-delete/${id}`, {
+      const response = await fetch(`${API_CONFIG.RESOURCES.DELETE_RESOURCE}/${id}`, {
         method: "DELETE",
       })
       if (!response.ok) {
@@ -1209,7 +1210,7 @@ const ResourceManagement = () => {
       // Make API call to assign the person to a resource
       // Reverting to the original approach that was working before
       const response = await fetch(
-        `http://127.0.0.1:8010/assign-people?person_id=${selectedPerson.id}&resource=${selectedResourceId || 0}`,
+        `${API_CONFIG.RESOURCES.ASSIGN_PEOPLE}?person_id=${selectedPerson.id}&resource=${selectedResourceId || 0}`,
         {
           method: "PUT",
         },
@@ -1220,7 +1221,7 @@ const ResourceManagement = () => {
       }
 
       // Get the updated data from the server
-      const updatedPeopleResponse = await axios.get("http://127.0.0.1:8010/get-people")
+      const updatedPeopleResponse = await axios.get(API_CONFIG.RESOURCES.GET_PEOPLE)
       setPeople(updatedPeopleResponse.data)
 
       setShowAssignmentDialog(false)

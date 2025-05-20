@@ -1001,7 +1001,7 @@ const Grades = () => {
     const fetchCourses = async () => {
       setCoursesLoading(true);
       try {
-        const response = await fetch("http://localhost:8020/courses");
+        const response = await fetch(API_CONFIG.FACULTY.COURSES.ALL);
         
         if (!response.ok) {
           throw new Error('Failed to fetch courses');
@@ -1034,7 +1034,7 @@ const Grades = () => {
       setError(null);
       
       try {
-        const response = await fetch(`http://localhost:8020/courses/${selectedCourse}/data`);
+        const response = await fetch(`${API_CONFIG.FACULTY.COURSES.COURSE_DATA}/${selectedCourse}/data`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch student data');

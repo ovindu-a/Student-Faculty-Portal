@@ -124,6 +124,13 @@ export const API_CONFIG = {
     SEND: `${urls.NOTIFICATIONS}/send`,
   },
 
+  FACULTY: {
+    COURSES: {
+      ALL: `${urls.STUDENT}/courses`,
+      COURSE_DATA: `${urls.STUDENT}/courses`,  // Base URL, will append /{courseId}/data in component
+    },
+  },
+
   // Recommendations endpoints
   RECOMMENDATIONS: {
     STUDY: `${urls.STUDENT}/recommendations/study`,  // Base URL, will append /{userId}/ in component

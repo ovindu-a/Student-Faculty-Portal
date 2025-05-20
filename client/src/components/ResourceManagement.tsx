@@ -467,7 +467,7 @@ const AvailableResources = () => {
   return (
     <div className="space-y-6">
       {/* Filters Section */}
-      <Card className="bg-gray-900 text-white">
+      <Card className="bg-gray-800 border-gray-700 text-white">
         <CardHeader className="pb-3 pt-5">
           <CardTitle className="flex items-center">
             <Filter className="mr-2 h-5 w-5" />
@@ -673,6 +673,7 @@ const BookedResources = () => {
     startTime: "",
     endTime: "",
   })
+  
   const handleEditBooking = (booking: Booking) => {
     setEditBookingForm({
       id: booking.id,
@@ -703,12 +704,12 @@ const BookedResources = () => {
       alert("Error deleting booking: " + (error instanceof Error ? error.message : "Unknown error"))
     }
   }
-
+  
   const formatTimeToHHMM = (timeString: string): string => {
     if (!timeString) return ""
     return timeString.slice(0, 5)
   }
-
+  
   const normalizeBooking = (booking: any): Booking => ({
     id: booking.id,
     createdAt: booking.created_at,
@@ -728,7 +729,7 @@ const BookedResources = () => {
       const response = await fetch("http://127.0.0.1:8010/booking-update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body), // make sure editBookingForm includes id, date, startTime, endTime etc
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {
@@ -738,7 +739,9 @@ const BookedResources = () => {
       const updated = await response.json()
       const normalizedUpdated = normalizeBooking(updated)
 
-      setBookings((prev) => prev.map((b) => (b.id === normalizedUpdated.id ? normalizedUpdated : b)))
+      setBookings(prev =>
+        prev.map(b => (b.id === normalizedUpdated.id ? normalizedUpdated : b))
+      )
 
       setShowEditDialog(false)
     } catch (error) {
@@ -755,109 +758,187 @@ const BookedResources = () => {
     return `${year}-${month}-${day}`
   }
 
-  if (loading) return <div>Loading...</div>
-  if (error) return <div className="text-red-500">{error}</div>
+  if (loading) return (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+  )
+  
+  if (error) return (
+    <div className="bg-red-900/20 border border-red-500/50 text-red-300 rounded-md p-4 flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+      </svg>
+      {error}
+    </div>
+  )
+
+  // Group bookings by date for better organization
+  const bookingsByDate = bookings.reduce((acc, booking) => {
+    const date = booking.date
+    if (!acc[date]) {
+      acc[date] = []
+    }
+    acc[date].push(booking)
+    return acc
+  }, {} as Record<string, Booking[]>)
+
+  // Sort dates in descending order (newest first)
+  const sortedDates = Object.keys(bookingsByDate).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  )
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-white">Your Booked Resources</h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {bookings.length > 0 ? (
-          bookings.map((booking) => (
-            <Card key={booking.id} className="overflow-hidden">
-              <CardHeader className="bg-gray-800 text-white border-b border-gray-700 pb-2">
-                <CardTitle className="text-base">{booking.resourceName}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                <div className="flex items-start">
-                  <CalendarIcon className="h-4 w-4 mr-2 mt-0.5 text-gray-400" />
-                  <span>
-                    {booking.date ? (
-                      new Date(booking.date).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    ) : (
-                      <span className="text-gray-500 italic">No Date</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-4 w-4 mr-2 mt-0.5 text-gray-400" />
-                  <span>
-                    {booking.startTime && booking.endTime ? (
-                      `${booking.startTime} - ${booking.endTime}`
-                    ) : (
-                      <span className="text-gray-500 italic">No Time Slot</span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 pt-4">
-                  <Button size="sm" onClick={() => handleEditBooking(booking)} variant="secondary">
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDeleteBooking(booking.id)}>
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <div className="col-span-2 p-8 text-center text-gray-400 border border-gray-700 rounded-md">
-            You don't have any booked resources yet.
-          </div>
-        )}
+      <div className="flex justify-between items-center">
+        <h3 className="text-l font-medium text-white">Your Bookings</h3>
+        <span className="text-sm text-gray-400">{bookings.length} total bookings</span>
       </div>
 
-      {/* Edit Dialog */}
-      {showEditDialog && (
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Booking</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                type="date"
-                placeholder="Date"
-                value={editBookingForm.date}
-                onChange={(e) => setEditBookingForm({ ...editBookingForm, date: e.target.value })}
-              />
-              <Input
-                type="time"
-                placeholder="Start Time"
-                value={editBookingForm.startTime}
-                onChange={(e) => setEditBookingForm({ ...editBookingForm, startTime: e.target.value })}
-              />
-              <Input
-                type="time"
-                placeholder="End Time"
-                value={editBookingForm.endTime}
-                onChange={(e) => setEditBookingForm({ ...editBookingForm, endTime: e.target.value })}
-              />
+      {bookings.length > 0 ? (
+        <div className="space-y-8">
+          {sortedDates.map(date => (
+            <div key={date} className="space-y-3">
+              <div className="flex items-center">
+                <div className="h-0.5 flex-grow bg-gray-800 mr-3"></div>
+                <h4 className="text-sm font-medium text-gray-400 flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-1.5" />
+                  {new Date(date).toLocaleDateString("en-US", {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </h4>
+                <div className="h-0.5 flex-grow bg-gray-800 ml-3"></div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {bookingsByDate[date].map((booking) => (
+                  <Card key={booking.id} className="overflow-hidden bg-gray-900 border border-gray-800 shadow-md hover:shadow-lg transition-all duration-200 hover:border-gray-700">
+                    <CardHeader className="bg-gray-800 border-b border-gray-700 pb-3">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-base text-white">
+                          {booking.resourceName}
+                        </CardTitle>
+                        <Badge variant="outline" className="bg-blue-900/20 text-blue-300 border-blue-500/30 text-xs">
+                          {booking.startTime} - {booking.endTime}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="pt-4">
+                      <div className="flex justify-between mb-4">
+                        <div className="flex items-center text-sm text-gray-400">
+                          <Clock className="h-4 w-4 mr-1.5 text-gray-500" />
+                          <span>{Math.round((new Date(`2000/01/01 ${booking.endTime}:00`).getTime() - 
+                                 new Date(`2000/01/01 ${booking.startTime}:00`).getTime()) / 1000 / 60 / 60 * 10) / 10} hours</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleEditBooking(booking)}
+                          variant="secondary"
+                          className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-100"
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteBooking(booking.id)}
+                          className="flex-1 bg-red-900/40 hover:bg-red-800/60 text-red-200 border border-red-800/30"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-            <DialogFooter className="flex justify-end gap-2 pt-4">
-              <Button variant="ghost" onClick={() => setShowEditDialog(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={async () => {
-                  await handleSaveEditedBooking()
-                  setShowEditDialog(false)
-                }}
-              >
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          ))}
+        </div>
+      ) : (
+        <div className="border border-dashed border-gray-700 rounded-lg p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+            <CalendarIcon className="h-8 w-8 text-gray-500" />
+          </div>
+          <h4 className="text-lg font-medium text-gray-300 mb-1">No bookings found</h4>
+          <p className="text-gray-500 max-w-sm mx-auto">
+            You don't have any booked resources yet. Check the Available Resources tab to make a booking.
+          </p>
+        </div>
       )}
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="bg-gray-900 border border-gray-800">
+          <DialogHeader className="border-b border-gray-800 pb-3">
+            <DialogTitle className="text-white">Edit Booking</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-date" className="text-gray-300">Booking Date</Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editBookingForm.date}
+                  onChange={(e) => setEditBookingForm({ ...editBookingForm, date: e.target.value })}
+                  className="bg-gray-800 border-gray-700 text-gray-200 pl-10"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start" className="text-gray-300">Start Time</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                  <Input
+                    id="edit-start"
+                    type="time"
+                    value={editBookingForm.startTime}
+                    onChange={(e) => setEditBookingForm({ ...editBookingForm, startTime: e.target.value })}
+                    className="bg-gray-800 border-gray-700 text-gray-200 pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-end" className="text-gray-300">End Time</Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                  <Input
+                    id="edit-end"
+                    type="time"
+                    value={editBookingForm.endTime}
+                    onChange={(e) => setEditBookingForm({ ...editBookingForm, endTime: e.target.value })}
+                    className="bg-gray-800 border-gray-700 text-gray-200 pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="border-t border-gray-800 pt-3">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEditedBooking}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -1158,18 +1239,10 @@ const ResourceManagement = () => {
 
       <Tabs defaultValue="available" className="flex-1">
         <TabsList className="bg-gray-800 border-b border-gray-700">
-          <TabsTrigger value="available" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            Available Resources
-          </TabsTrigger>
-          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            Booked Resources
-          </TabsTrigger>
-          <TabsTrigger value="management" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            Resource Management
-          </TabsTrigger>
-          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">
-            People Assignments
-          </TabsTrigger>
+          <TabsTrigger value="available" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Available Resources</TabsTrigger>
+          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Booked Resources</TabsTrigger>
+          <TabsTrigger value="management" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Resource Management</TabsTrigger>
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Maintenance Dashboard</TabsTrigger>
         </TabsList>
 
         {/* Available */}

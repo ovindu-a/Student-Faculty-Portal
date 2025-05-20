@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useEffect, useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
@@ -9,14 +8,15 @@ import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import {
   Calendar,
-  GraduationCap,
-  Library,
   Users,
-  Book,
-  Menu,
-  X,
-  Shield,
+  GraduationCap,
   LogOut,
+  X,
+  Menu,
+  BookOpen,
+  Database,
+  Shield,
+  Library,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -1319,8 +1319,8 @@ const navItems = [
   { id: "scheduler", label: "Class Schedule", icon: Calendar },
   { id: "students", label: "Students", icon: Users },
   { id: "grades", label: "Grades", icon: GraduationCap },
-  { id: "course-management", label: "Course Management", icon: GraduationCap },
-  { id: "resources", label: "Resource Management", icon: Library },
+  { id: "course-management", label: "Courses", icon: BookOpen },
+  { id: "resources", label: "Resources", icon: Database },
 ]
 
 const FacultyDashboard: React.FC = () => {
@@ -1417,95 +1417,103 @@ const FacultyDashboard: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen h-screen w-full bg-gray-900 overflow-hidden">
       {/* Top header bar for mobile - only shown on small screens */}
-      <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center border-b border-gray-800">
-        <h2 className="text-xl font-bold">Faculty Portal</h2>
+      <div className="md:hidden bg-[#0d1525] text-white p-4 flex justify-between items-center border-b border-[#1a2644]">
+        <h2 className="text-xl font-bold">
+          <span className="text-blue-400">Faculty</span>
+          <span>Portal</span>
+        </h2>
         <button onClick={toggleSidebar} className="p-1">
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+        </button>
       </div>
 
       <div className="flex flex-1 overflow-hidden w-full h-full">
-        {/* Left sidebar - inspired by CampusSecure */}
+        {/* Left sidebar */}
         <div
-          className={`${isSidebarOpen ? "block" : "hidden"} md:block bg-gray-900 text-white border-r border-gray-800 flex-shrink-0 ${
+          className={`${isSidebarOpen ? "block" : "hidden"} md:block bg-[#0d1525] text-white flex-shrink-0 ${
             isSidebarOpen ? "w-full md:w-64" : "w-0"
           } transition-all duration-300 fixed md:static md:h-full z-20 h-[calc(100%-4rem)]`}
         >
-          <div className="hidden md:flex p-4 border-b border-gray-800 items-center">
-            <Shield className="h-6 w-6 mr-2 text-blue-400" />
-            <h2 className="text-xl font-bold">Faculty Portal</h2>
+          {/* Logo and title section */}
+          <div className="p-6 border-b border-[#1a2644]">
+            <h2 className="text-xl font-bold flex items-center">
+              <span className="text-blue-400">Faculty</span>
+              <span className="ml-1">Portal</span>
+            </h2>
           </div>
-          <nav className="mt-4 overflow-y-auto h-[calc(100%-8rem)]">
+          
+          {/* Navigation links */}
+          <nav className="mt-4 overflow-y-auto h-[calc(100%-12rem)]">
             <ul className="space-y-1 px-2">
               {navItems.map((item) => (
                 <li key={item.id}>
-          <button
+                  <button
                     onClick={() => {
                       setActiveSection(item.id)
                       if (window.innerWidth < 768) {
                         setIsSidebarOpen(false)
                       }
                     }}
-                    className={`w-full flex items-center px-4 py-3 text-left rounded-md ${
+                    className={`w-full flex items-center px-4 py-3 text-left rounded-sm ${
                       activeSection === item.id
                         ? "bg-gray-800 text-white"
-                        : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
+                        : "text-gray-400 hover:bg-[#1a2644] hover:text-white"
                     }`}
                   >
-                    <item.icon className="h-5 w-5 mr-3" />
+                    <item.icon className={`h-5 w-5 mr-3 ${activeSection === item.id ? "text-white" : "text-blue-400"}`} />
                     {item.label}
-          </button>
+                  </button>
                 </li>
               ))}
             </ul>
           </nav>
 
-          {/* User info and logout - styled like CampusSecure */}
-          <div className="hidden md:block absolute bottom-0 w-64 border-t border-gray-800 p-4">
+          {/* User info and logout - desktop */}
+          <div className="hidden md:block absolute bottom-0 w-full border-t border-[#1a2644] p-4">
             <div className="flex items-center mb-3">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
                 {user?.email?.charAt(0).toUpperCase() || "F"}
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold">Faculty User</span>
+                <span className="font-semibold text-sm">{user?.name || "Faculty User"}</span>
                 <span className="text-xs text-gray-400">{user?.email}</span>
               </div>
             </div>
-          <button
+            <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-800 rounded-md"
+              className="w-full flex items-center justify-center px-3 py-2 text-left text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
-          </button>
+            </button>
           </div>
 
           {/* Mobile user info and logout */}
-          <div className="md:hidden border-t border-gray-800 p-4 mt-4">
+          <div className="md:hidden border-t border-[#1a2644] p-4 mt-4">
             <div className="flex items-center mb-3">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
                 {user?.email?.charAt(0).toUpperCase() || "F"}
               </div>
               <div className="flex flex-col">
-                <span className="font-semibold">Faculty User</span>
+                <span className="font-semibold text-sm">{user?.name || "Faculty User"}</span>
                 <span className="text-xs text-gray-400">{user?.email}</span>
               </div>
             </div>
-          <button
+            <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-gray-800 rounded-md"
+              className="w-full flex items-center px-3 py-2 text-left text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
-          </button>
-            </div>
+            </button>
           </div>
+        </div>
 
         {/* Main content area */}
         <div className="flex-1 overflow-auto w-full h-full bg-gray-900 p-4">
           {renderActiveSection()}
         </div>
-    </div>
+      </div>
     </div>
   )
 }

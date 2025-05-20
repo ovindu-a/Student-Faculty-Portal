@@ -435,7 +435,7 @@ const AvailableResources = () => {
   return (
     <div className="space-y-6">
       {/* Filters Section */}
-      <Card className="bg-gray-900 text-white">
+      <Card className="bg-gray-800 border-gray-700 text-white">
         <CardHeader className="pb-3 pt-5">
           <CardTitle className="flex items-center">
             <Filter className="mr-2 h-5 w-5" />
@@ -759,7 +759,7 @@ const BookedResources = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-medium text-white">Your Bookings</h3>
+        <h3 className="text-l font-medium text-white">Your Bookings</h3>
         <span className="text-sm text-gray-400">{bookings.length} total bookings</span>
       </div>
 
@@ -1139,10 +1139,10 @@ const ResourceManagement = () => {
 
       <Tabs defaultValue="available" className="flex-1">
         <TabsList className="bg-gray-800 border-b border-gray-700">
-          <TabsTrigger value="available" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">Available Resources</TabsTrigger>
-          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">Booked Resources</TabsTrigger>
-          <TabsTrigger value="management" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">Resource Management</TabsTrigger>
-          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-300 data-[state=active]:text-white">Maintenance Dashboard</TabsTrigger>
+          <TabsTrigger value="available" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Available Resources</TabsTrigger>
+          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Booked Resources</TabsTrigger>
+          <TabsTrigger value="management" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Resource Management</TabsTrigger>
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">Maintenance Dashboard</TabsTrigger>
         </TabsList>
 
         {/* Available */}

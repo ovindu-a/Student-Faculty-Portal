@@ -70,13 +70,13 @@ const Scheduler = () => {
             const assignmentsResponse = await axios.get<Assignment[]>(
               `http://localhost:8020/api/assignments/${course.id}`
             );
-            const assignments = assignmentsResponse.data || [];
+            const assignments = Array.isArray(assignmentsResponse.data) ? assignmentsResponse.data : [];
             
             // Fetch exams for this course
             const examsResponse = await axios.get<Exam[]>(
               `http://localhost:8020/api/exams/${course.id}`
             );
-            const exams = examsResponse.data || [];
+            const exams = Array.isArray(examsResponse.data) ? examsResponse.data : [];
             
             // Return course with its assignments and exams
             return {

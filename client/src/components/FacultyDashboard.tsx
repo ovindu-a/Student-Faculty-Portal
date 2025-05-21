@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 import Scheduler from "./Scheduler"
 import ResourceManagement from "./ResourceManagement"
-import CourseManagement from "./CourseManagement"
+import FacultyCourseManagement from "./FacultyCourseManagement"
 import API_CONFIG from "../lib/config"
 
 // Simple Select Component
@@ -1185,15 +1185,15 @@ const Grades = () => {
             ) : (
               <div className="grid grid-cols-3 gap-4 mt-2">
                 <div className="flex flex-col items-center justify-center">
-                  <div className="text-2xl font-bold text-blue-400">{stats.average.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-blue-400">{stats.average ? stats.average.toFixed(2) : '0.00'}</div>
                   <div className="text-sm text-gray-400 mt-1">Class Average</div>
                 </div>
                 <div className="flex flex-col items-center justify-center">
-                  <div className="text-2xl font-bold text-green-400">{stats.highest.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-green-400">{stats.highest ? stats.highest.toFixed(2) : '0.00'}</div>
                   <div className="text-sm text-gray-400 mt-1">Highest Grade</div>
                 </div>
                 <div className="flex flex-col items-center justify-center">
-                  <div className="text-2xl font-bold text-yellow-400">{stats.lowest.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-yellow-400">{stats.lowest ? stats.lowest.toFixed(2) : '0.00'}</div>
                   <div className="text-sm text-gray-400 mt-1">Lowest Grade</div>
                 </div>
               </div>
@@ -1327,7 +1327,7 @@ const Grades = () => {
                           bottom: `${student.data.avg_score}%`,
                           transform: `translate(-50%, 50%)` 
                         }}
-                        title={`${student.student_info.first_name} ${student.student_info.last_name || ''}: ${student.data.avg_score.toFixed(2)}%, ${student.data.total_time_spent} hours`}
+                        title={`${student.student_info.first_name} ${student.student_info.last_name || ''}: ${student.data.avg_score !== undefined ? student.data.avg_score.toFixed(2) : '0.00'}%, ${student.data.total_time_spent} hours`}
                       ></div>
                     );
                   })}
@@ -1399,7 +1399,7 @@ const Grades = () => {
                           <td className="py-3 px-4 text-center text-white">{student.data.total_time_spent}</td>
                           <td className="py-3 px-4 text-center text-white">{student.data.courses_completed}</td>
                           <td className="py-3 px-4 text-right">
-                            {student.data.avg_score.toFixed(2)}%
+                            {student.data.avg_score !== undefined ? student.data.avg_score.toFixed(2) : '0.00'}%
                           </td>
                           <td className="py-3 px-4 text-center font-bold">
                             <span className={getGradeColor(student.data.avg_score)}>
@@ -1584,7 +1584,7 @@ const FacultyDashboard: React.FC = () => {
       case "grades":
         return <Grades />
       case "course-management":
-        return <CourseManagement />
+        return <FacultyCourseManagement />
       case "resources":
         return <ResourceManagement />
       default:

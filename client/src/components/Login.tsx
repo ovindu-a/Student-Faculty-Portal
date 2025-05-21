@@ -73,28 +73,13 @@ const Login: React.FC = () => {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-700"></div>
                 </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="px-2 bg-gray-800 text-gray-500">Or continue as</span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-3">
-                <button className="bg-gray-700 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-colors duration-300">
-                  Student
-                </button>
-                <button className="bg-gray-700 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg transition-colors duration-300">
-                  Faculty
-                </button>
-                <button className="bg-gray-700 hover:bg-purple-600 text-white px-3 py-2 rounded-lg transition-colors duration-300">
-                  Admin
-                </button>
               </div>
             </div>
           </div>
           
           <div className="px-8 py-4 bg-gray-900 text-center">
             <p className="text-gray-500 text-xs">
-              © 2023 Personalized Portal. All rights reserved.
+              © 2025 Personalized Portal. All rights reserved.
             </p>
           </div>
         </div>

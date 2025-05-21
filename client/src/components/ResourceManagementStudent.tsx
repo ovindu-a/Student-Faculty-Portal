@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
 import axios from "axios"
-import API_CONFIG from "../lib/config"
+import { API_CONFIG } from "../lib/config"
 
 // Simple Select Component
 const Select = ({
@@ -296,6 +296,9 @@ const AvailableResources = () => {
   const [bookingDuration, setBookingDuration] = useState<string>("1")
   const [bookingPurpose, setBookingPurpose] = useState<string>("")
   const [user, setUser] = useState<User | null>(null)
+  // Add a state variable for locations in the AvailableResources component
+  const [locations, setLocations] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState<string>("")
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -303,16 +306,22 @@ const AvailableResources = () => {
         const response = await axios.get(API_CONFIG.RESOURCES.ALL)
         const data = response.data
 
-        // Optional: transform keys if needed
+        // Transform keys and include location
         const formattedResources: Resource[] = data.map((r: any) => ({
           id: r.id,
           name: r.resource_name,
           type: r.resource_type,
           capacity: r.capacity,
           createdAt: r.created_at,
+          maintained: r.maintained_by,
+          location: r.location, // Include location from API response
         }))
 
         setResources(formattedResources)
+
+        // Extract unique locations for the filter
+        const uniqueLocations = [...new Set(formattedResources.map((r) => r.location).filter(Boolean))]
+        setLocations(uniqueLocations as string[])
       } catch (error) {
         console.error("Error fetching resources:", error)
       } finally {
@@ -330,7 +339,8 @@ const AvailableResources = () => {
       if (max && (resource.capacity < min || resource.capacity > max)) return false
       if (!max && resource.capacity < min) return false
     }
-    if (location !== "all" && !(resource.location ?? "").includes(location)) return false
+    if (location !== "all" && resource.location !== location) return false
+    if (searchQuery && !resource.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
     return true
   })
   useEffect(() => {
@@ -500,15 +510,16 @@ const AvailableResources = () => {
                 <SelectItem value="101">100+ People</SelectItem>
               </Select>
             </div>
+            {/* Update the location filter dropdown to use real locations */}
             <div>
               <Label className="text-gray-200 mb-1 block">Location</Label>
               <Select value={location} onValueChange={setLocation} className="bg-gray-800 border-gray-700 text-white">
                 <SelectItem value="all">All Locations</SelectItem>
-                {/* {locations.map((loc) => (
+                {locations.map((loc) => (
                   <SelectItem key={loc} value={loc}>
                     {loc}
                   </SelectItem>
-                ))} */}
+                ))}
               </Select>
             </div>
             <div>
@@ -520,6 +531,19 @@ const AvailableResources = () => {
                 min={getTodayDateString()}
                 className="bg-gray-800 border-gray-700 text-white"
               />
+            </div>
+            <div>
+              <Label className="text-gray-200 mb-1 block">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white pl-10"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -549,7 +573,10 @@ const AvailableResources = () => {
                   <Label>Selected Resource</Label>
                   <div className="p-3 bg-gray-800 border border-gray-700 rounded-md">
                     <div className="font-medium text-white">{selectedResource.name}</div>
-                    <div className="text-sm text-gray-300">{selectedResource.location ?? "No location specified"}</div>
+                    <div className="text-sm text-gray-300 mt-1">
+                      <span className="font-medium text-white">Location:</span>{" "}
+                      {selectedResource.location || "No location specified"}
+                    </div>
                     <div className="text-sm mt-1 text-gray-300">
                       <span className="font-medium text-white">Capacity:</span> {selectedResource.capacity} people
                     </div>
@@ -674,7 +701,7 @@ const BookedResources = () => {
     startTime: "",
     endTime: "",
   })
-  
+
   const handleEditBooking = (booking: Booking) => {
     setEditBookingForm({
       id: booking.id,
@@ -705,12 +732,12 @@ const BookedResources = () => {
       alert("Error deleting booking: " + (error instanceof Error ? error.message : "Unknown error"))
     }
   }
-  
+
   const formatTimeToHHMM = (timeString: string): string => {
     if (!timeString) return ""
     return timeString.slice(0, 5)
   }
-  
+
   const normalizeBooking = (booking: any): Booking => ({
     id: booking.id,
     createdAt: booking.created_at,
@@ -740,9 +767,7 @@ const BookedResources = () => {
       const updated = await response.json()
       const normalizedUpdated = normalizeBooking(updated)
 
-      setBookings(prev =>
-        prev.map(b => (b.id === normalizedUpdated.id ? normalizedUpdated : b))
-      )
+      setBookings((prev) => prev.map((b) => (b.id === normalizedUpdated.id ? normalizedUpdated : b)))
 
       setShowEditDialog(false)
     } catch (error) {
@@ -759,35 +784,42 @@ const BookedResources = () => {
     return `${year}-${month}-${day}`
   }
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-    </div>
-  )
-  
-  if (error) return (
-    <div className="bg-red-900/20 border border-red-500/50 text-red-300 rounded-md p-4 flex items-center">
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-      </svg>
-      {error}
-    </div>
-  )
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    )
+
+  if (error)
+    return (
+      <div className="bg-red-900/20 border border-red-500/50 text-red-300 rounded-md p-4 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clipRule="evenodd"
+          />
+        </svg>
+        {error}
+      </div>
+    )
 
   // Group bookings by date for better organization
-  const bookingsByDate = bookings.reduce((acc, booking) => {
-    const date = booking.date
-    if (!acc[date]) {
-      acc[date] = []
-    }
-    acc[date].push(booking)
-    return acc
-  }, {} as Record<string, Booking[]>)
+  const bookingsByDate = bookings.reduce(
+    (acc, booking) => {
+      const date = booking.date
+      if (!acc[date]) {
+        acc[date] = []
+      }
+      acc[date].push(booking)
+      return acc
+    },
+    {} as Record<string, Booking[]>,
+  )
 
   // Sort dates in descending order (newest first)
-  const sortedDates = Object.keys(bookingsByDate).sort((a, b) => 
-    new Date(b).getTime() - new Date(a).getTime()
-  )
+  const sortedDates = Object.keys(bookingsByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
 
   return (
     <div className="space-y-6">
@@ -798,45 +830,55 @@ const BookedResources = () => {
 
       {bookings.length > 0 ? (
         <div className="space-y-8">
-          {sortedDates.map(date => (
+          {sortedDates.map((date) => (
             <div key={date} className="space-y-3">
               <div className="flex items-center">
                 <div className="h-0.5 flex-grow bg-gray-800 mr-3"></div>
                 <h4 className="text-sm font-medium text-gray-400 flex items-center">
                   <CalendarIcon className="h-4 w-4 mr-1.5" />
                   {new Date(date).toLocaleDateString("en-US", {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
                   })}
                 </h4>
                 <div className="h-0.5 flex-grow bg-gray-800 ml-3"></div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {bookingsByDate[date].map((booking) => (
-                  <Card key={booking.id} className="overflow-hidden bg-gray-900 border border-gray-800 shadow-md hover:shadow-lg transition-all duration-200 hover:border-gray-700">
+                  <Card
+                    key={booking.id}
+                    className="overflow-hidden bg-gray-900 border border-gray-800 shadow-md hover:shadow-lg transition-all duration-200 hover:border-gray-700"
+                  >
                     <CardHeader className="bg-gray-800 border-b border-gray-700 pb-3">
                       <div className="flex justify-between items-start">
-                        <CardTitle className="text-base text-white">
-                          {booking.resourceName}
-                        </CardTitle>
+                        <CardTitle className="text-base text-white">{booking.resourceName}</CardTitle>
                         <Badge variant="outline" className="bg-blue-900/20 text-blue-300 border-blue-500/30 text-xs">
                           {booking.startTime} - {booking.endTime}
                         </Badge>
                       </div>
                     </CardHeader>
-                    
+
                     <CardContent className="pt-4">
                       <div className="flex justify-between mb-4">
                         <div className="flex items-center text-sm text-gray-400">
                           <Clock className="h-4 w-4 mr-1.5 text-gray-500" />
-                          <span>{Math.round((new Date(`2000/01/01 ${booking.endTime}:00`).getTime() - 
-                                 new Date(`2000/01/01 ${booking.startTime}:00`).getTime()) / 1000 / 60 / 60 * 10) / 10} hours</span>
+                          <span>
+                            {Math.round(
+                              ((new Date(`2000/01/01 ${booking.endTime}:00`).getTime() -
+                                new Date(`2000/01/01 ${booking.startTime}:00`).getTime()) /
+                                1000 /
+                                60 /
+                                60) *
+                                10,
+                            ) / 10}{" "}
+                            hours
+                          </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2 pt-2">
                         <Button
                           size="sm"
@@ -883,7 +925,9 @@ const BookedResources = () => {
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="space-y-2">
-              <Label htmlFor="edit-date" className="text-gray-300">Booking Date</Label>
+              <Label htmlFor="edit-date" className="text-gray-300">
+                Booking Date
+              </Label>
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
                 <Input
@@ -895,10 +939,12 @@ const BookedResources = () => {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="edit-start" className="text-gray-300">Start Time</Label>
+                <Label htmlFor="edit-start" className="text-gray-300">
+                  Start Time
+                </Label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
                   <Input
@@ -910,9 +956,11 @@ const BookedResources = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="edit-end" className="text-gray-300">End Time</Label>
+                <Label htmlFor="edit-end" className="text-gray-300">
+                  End Time
+                </Label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
                   <Input
@@ -927,14 +975,14 @@ const BookedResources = () => {
             </div>
           </div>
           <DialogFooter className="border-t border-gray-800 pt-3">
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800">
+            <Button
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
               Cancel
             </Button>
-            <Button
-              onClick={handleSaveEditedBooking}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
+            <Button onClick={handleSaveEditedBooking} className="bg-blue-600 hover:bg-blue-700 text-white">
               Save Changes
             </Button>
           </DialogFooter>
@@ -944,31 +992,513 @@ const BookedResources = () => {
   )
 }
 
-const ResourceManagementStudent = () => {
+// Resource Management component
+const ResourceManagement = () => {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [resources, setResources] = useState<Resource[]>([])
+  const [showAddResourceDialog, setShowAddResourceDialog] = useState<boolean>(false)
+  const [showMaintenanceDialog, setShowMaintenanceDialog] = useState<boolean>(false)
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
+  const [searchQuery, setSearchQuery] = useState<string>("")
+
+  // Add these state variables at the beginning of the ResourceManagement component:
+
+  const [people, setPeople] = useState<Person[]>([])
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
+  const [selectedResourceId, setSelectedResourceId] = useState<string>("0") // Updated default value to be a non-empty string
+  const [showAssignmentDialog, setShowAssignmentDialog] = useState<boolean>(false)
+  const [assignmentNotes, setAssignmentNotes] = useState<string>("")
+
+  // Add a new state variable for the "add person" dialog:
+  const [showAddPersonDialog, setShowAddPersonDialog] = useState<boolean>(false)
+
+  // Add a new state for the person form:
+  const [newPersonForm, setNewPersonForm] = useState({
+    name: "",
+    occupation: "",
+    contact_number: "",
+  })
+  const fetchResources = async () => {
+    try {
+      const response = await axios.get(API_CONFIG.RESOURCES.ALL)
+      const data = response.data
+
+      // Transform keys and include location
+      const formattedResources: Resource[] = data.map((r: any) => ({
+        id: r.id,
+        name: r.resource_name,
+        type: r.resource_type,
+        capacity: r.capacity,
+        createdAt: r.created_at,
+        maintained: r.maintained_by,
+        location: r.location, // Include location from API response
+      }))
+
+      setResources(formattedResources)
+    } catch (error) {
+      console.error("Error fetching resources:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {
+    fetchResources()
+  }, [])
+
+  // Add this useEffect to fetch people data
+  useEffect(() => {
+    const fetchPeople = async () => {
+      try {
+        const response = await axios.get(API_CONFIG.RESOURCES.GET_PEOPLE)
+        setPeople(response.data)
+      } catch (error) {
+        console.error("Error fetching people:", error)
+      }
+    }
+
+    fetchPeople()
+  }, [])
+
+  // New resource form state
+  const [newResourceForm, setNewResourceForm] = useState<Partial<Resource>>({
+    name: "",
+    type: "Room",
+    capacity: 0,
+    location: "",
+    accessibility: [],
+    status: "available",
+  })
+
+  // Maintenance form state
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    status: "available",
+    notes: "",
+    persons: "",
+    fromDate: "",
+    toDate: "",
+  })
+
+  // Handle adding a new resource
+  const handleAddResource = async () => {
+    if (!newResourceForm.name || !newResourceForm.type || !newResourceForm.capacity) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    try {
+      const response = await fetch(API_CONFIG.RESOURCES.INSERT_RESOURCE, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newResourceForm.name,
+          type: newResourceForm.type,
+          capacity: newResourceForm.capacity,
+          location: newResourceForm.location,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to insert resource")
+      }
+
+      const result = await response.json()
+
+      const newResourceWithId: Resource = {
+        id: `${resources.length + 1}`,
+        name: newResourceForm.name ?? "",
+        type: newResourceForm.type ?? "Room",
+        capacity: newResourceForm.capacity ?? 0,
+        location: newResourceForm.location ?? "",
+        accessibility: newResourceForm.accessibility ?? [],
+      }
+
+      setResources([...resources, newResourceWithId])
+      await fetchResources()
+      setShowAddResourceDialog(false)
+      setNewResourceForm({
+        name: "",
+        type: "Room",
+        capacity: 0,
+        location: "",
+        accessibility: [],
+        status: "available",
+      })
+    } catch (error: unknown) {
+      console.error("Error adding resource:", error)
+      alert("Error adding resource: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
+  }
+
+  // Update the handleEditResource function to include location in the API request
+  const handleEditResource = async (
+    resourceId: string,
+    updatedResource: {
+      name: string
+      type: string
+      capacity: number
+      location: string
+    },
+  ) => {
+    try {
+      const response = await fetch(`${API_CONFIG.RESOURCES.UPDATE_RESOURCE}/${resourceId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedResource),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update resource")
+      }
+
+      const result = await response.json()
+
+      await fetchResources()
+      // setResources((prevResources) =>
+      //   prevResources.map((resource) => (resource.id === resourceId ? { ...resource, ...updatedResource } : resource)),
+      // )
+    } catch (error: unknown) {
+      console.error("Error updating resource:", error)
+      alert("Error updating resource: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
+  }
+  // Handle updating resource assignment
+  const handleUpdateMaintenance = async () => {
+    if (!selectedResource) return
+
+    try {
+      // In a real app, this would make an API call to update the resource
+      const updatedResources = resources.map((resource) =>
+        resource.id === selectedResource.id
+          ? {
+              ...resource,
+              maintained: maintenanceForm.persons,
+              maintenanceNotes: maintenanceForm.notes,
+            }
+          : resource,
+      )
+
+      setResources(updatedResources)
+      setShowMaintenanceDialog(false)
+
+      // This would be an API call in a real application
+      // await fetch(`http://127.0.0.1:8010/resource-assign/${selectedResource.id}`, {
+      //   method: "PUT",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     maintained_by: maintenanceForm.persons,
+      //     notes: maintenanceForm.notes
+      //   }),
+      // })
+    } catch (error) {
+      console.error("Error updating assignment:", error)
+      alert("Error updating assignment")
+    }
+  }
+
+  // Handle opening the assignment dialog
+  const handleOpenMaintenanceDialog = (resource: Resource) => {
+    setSelectedResource(resource)
+    setMaintenanceForm({
+      status: "available", // This is less relevant for assignments but keeping for compatibility
+      notes: resource.maintenanceNotes || "",
+      persons: resource.maintained || "",
+      fromDate: "", // No longer needed
+      toDate: "", // No longer needed
+    })
+    setShowMaintenanceDialog(true)
+  }
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [resourceBeingEdited, setResourceBeingEdited] = useState<Resource | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "",
+    type: "",
+    capacity: 0,
+    location: "",
+  })
+
+  // Filter resources based on search query
+  const filteredResources = resources.filter(
+    (resource) =>
+      resource.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      resource.type.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
+
+  // Get status badge for a resource
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "available":
+        return <Badge className="bg-green-500">Available</Badge>
+      case "under_maintenance":
+        return <Badge className="bg-yellow-500">Under Maintenance</Badge>
+      case "restricted":
+        return <Badge className="bg-red-500">Restricted</Badge>
+      default:
+        return null
+    }
+  }
+
+  const handleDeleteResource = async (id: string) => {
+    try {
+      const response = await fetch(`${API_CONFIG.RESOURCES.DELETE_RESOURCE}/${id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) {
+        throw new Error("Failed to delete resource")
+      }
+
+      setResources((prev) => prev.filter((resource) => resource.id !== id))
+    } catch (error) {
+      console.error("Delete error:", error)
+      alert("Error deleting resource.")
+    }
+  }
+
+  // Add these functions to handle assignment
+  const handleOpenAssignmentDialog = (person: Person) => {
+    setSelectedPerson(person)
+    // Make sure we're setting the correct resource ID from the person object
+    setSelectedResourceId(person.resource_assigned ? String(person.resource_assigned) : "0")
+    setAssignmentNotes("")
+    setShowAssignmentDialog(true)
+  }
+
+  const handleUpdateAssignment = async () => {
+    if (!selectedPerson) return
+
+    try {
+      // Make API call to assign the person to a resource
+      // Reverting to the original approach that was working before
+      const response = await fetch(
+        `${API_CONFIG.RESOURCES.ASSIGN_PEOPLE}?person_id=${selectedPerson.id}&resource=${selectedResourceId || 0}`,
+        {
+          method: "PUT",
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error("Failed to update assignment")
+      }
+
+      // Get the updated data from the server
+      const updatedPeopleResponse = await axios.get(API_CONFIG.RESOURCES.GET_PEOPLE)
+      setPeople(updatedPeopleResponse.data)
+
+      setShowAssignmentDialog(false)
+    } catch (error) {
+      console.error("Error updating assignment:", error)
+      alert("Error updating assignment")
+    }
+  }
+
+  // Add a function to handle adding a new person:
+  const handleAddPerson = async () => {
+    if (!newPersonForm.name || !newPersonForm.occupation || !newPersonForm.contact_number) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8010/add-people", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newPersonForm),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to add person")
+      }
+
+      // Refresh the people list
+      const updatedPeopleResponse = await axios.get("http://127.0.0.1:8010/get-people")
+      setPeople(updatedPeopleResponse.data)
+
+      setShowAddPersonDialog(false)
+      setNewPersonForm({
+        name: "",
+        occupation: "",
+        contact_number: "",
+      })
+    } catch (error: unknown) {
+      console.error("Error adding person:", error)
+      alert("Error adding person: " + (error instanceof Error ? error.message : "Unknown error"))
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Resource Management</h1>
-        <p className="text-gray-400">Book and manage resources</p>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-white tracking-tight">Resource Management</h1>
+        <p className="text-muted-foreground">Manage and book resources across the campus</p>
       </div>
+
       <Tabs defaultValue="available" className="flex-1">
         <TabsList className="bg-gray-800 border-b border-gray-700">
-          <TabsTrigger value="available" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+          <TabsTrigger value="available" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
             Available Resources
           </TabsTrigger>
-          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
-            Your Bookings
+          <TabsTrigger value="booked" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+            Booked Resources
+          </TabsTrigger>
+          <TabsTrigger value="management" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+            Resource Management
+          </TabsTrigger>
+          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+            Maintenance Dashboard
           </TabsTrigger>
         </TabsList>
+
+        {/* Available */}
         <TabsContent value="available" className="mt-6 flex-1">
           <AvailableResources />
         </TabsContent>
+
+        {/* Booked */}
         <TabsContent value="booked" className="mt-6 flex-1">
           <BookedResources />
+        </TabsContent>
+
+        {/* Management */}
+        <TabsContent value="management" className="mt-6 flex-1">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-white">Manage Resources</h3>
+              <Button onClick={() => setShowAddResourceDialog(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Add New Resource
+              </Button>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search resources..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-gray-800 border-gray-700 text-white"
+              />
+            </div>
+
+            <div className="border border-gray-700 rounded-md overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-800 text-gray-200">
+                    <th className="p-3 text-left">Name</th>
+                    <th className="p-3 text-left">Type</th>
+                    <th className="p-3 text-left">Capacity</th>
+                    <th className="p-3 text-left">Location</th>
+                    <th className="p-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredResources.map((resource) => (
+                    <tr key={resource.id} className="border-t border-gray-700 hover:bg-gray-700">
+                      <td className="p-3 text-white">{resource.name}</td>
+                      <td className="p-3 text-white">{resource.type}</td>
+                      <td className="p-3 text-white">{resource.capacity}</td>
+                      <td className="p-3 text-white">{resource.location || "Not specified"}</td>
+                      <td className="p-3">
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setResourceBeingEdited(resource)
+                              setEditForm({
+                                name: resource.name,
+                                type: resource.type,
+                                capacity: resource.capacity,
+                                location: resource.location || "",
+                              })
+                              setShowEditDialog(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          {showEditDialog && (
+                            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit Resource</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <Input
+                                    placeholder="Name"
+                                    value={editForm.name ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                  />
+                                  <Input
+                                    placeholder="Type"
+                                    value={editForm.type ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Capacity"
+                                    value={editForm.capacity ?? 0}
+                                    onChange={(e) => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
+                                  />
+                                  <Input
+                                    placeholder="Location"
+                                    value={editForm.location ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                                  />
+                                </div>
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                  </DialogClose>
+                                  <Button
+                                    onClick={async () => {
+                                      if (resourceBeingEdited) {
+                                        await handleEditResource(resourceBeingEdited.id, {
+                                          name: editForm.name ?? "",
+                                          type: editForm.type ?? "Room",
+                                          capacity: editForm.capacity ?? 0,
+                                          location: editForm.location ?? "",
+                                        })
+                                        setShowEditDialog(false)
+                                      }
+                                    }}
+                                  >
+                                    Save Changes
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-400 hover:text-red-300"
+                            onClick={() => handleDeleteResource(resource.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {filteredResources.length === 0 && (
+                <div className="p-8 text-center text-gray-400">No resources found matching your search.</div>
+              )}
+            </div>
+          </div>
+
         </TabsContent>
       </Tabs>
     </div>
   )
 }
 
-export default ResourceManagementStudent
+export default ResourceManagement

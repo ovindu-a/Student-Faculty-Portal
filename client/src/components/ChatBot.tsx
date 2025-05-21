@@ -6,6 +6,7 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  role?: 'user' | 'assistant';
 }
 
 interface ChatBotProps {
@@ -26,7 +27,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
     setMessages([{
       text: `Welcome to the ${portalType === 'student' ? 'Student' : 'Faculty'} Portal! How can I help you today?`,
       isUser: false,
-      timestamp: new Date()
+      timestamp: new Date(),
+      role: 'assistant'
     }]);
   }, [portalType]);
 
@@ -56,7 +58,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
     const userMessage: Message = {
       text: inputValue,
       isUser: true,
-      timestamp: new Date()
+      timestamp: new Date(),
+      role: 'user'
     };
     
     setMessages(prev => [...prev, userMessage]);
@@ -64,27 +67,54 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
     setIsLoading(true);
     
     try {
-      // Here we'd normally make an API call to your backend service
-      // which securely handles the OpenAI API communication
-      // Example: const response = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ message: inputValue, portalType }) });
+      // Format messages for the backend
+      const messageHistory = messages.map(msg => ({
+        role: msg.role || (msg.isUser ? 'user' : 'assistant'),
+        content: msg.text
+      }));
+
+      // Add current message
+      messageHistory.push({
+        role: 'user',
+        content: userMessage.text
+      });
+
+      // Send to backend
+      const response = await fetch('http://localhost:8100/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          past_messages: messageHistory,
+          portal_type: portalType,
+          user_name: userName
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response from chatbot');
+      }
+
+      const data = await response.json();
       
-      // For now, we'll simulate a response based on the portal type and message content
-      setTimeout(() => {
-        const botResponse = generateBotResponse(inputValue, portalType);
-        setMessages(prev => [...prev, {
-          text: botResponse,
-          isUser: false,
-          timestamp: new Date()
-        }]);
-        setIsLoading(false);
-      }, 1000);
+      // Add bot response to messages
+      setMessages(prev => [...prev, {
+        text: data.response,
+        isUser: false,
+        timestamp: new Date(),
+        role: 'assistant'
+      }]);
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages(prev => [...prev, {
         text: "Sorry, I'm having trouble connecting. Please try again later.",
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
+        role: 'assistant'
       }]);
+    } finally {
       setIsLoading(false);
     }
   };

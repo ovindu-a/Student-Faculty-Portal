@@ -987,6 +987,13 @@ const Students = () => {
   )
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 const Grades = () => {
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -995,13 +1002,41 @@ const Grades = () => {
   const [studentsData, setStudentsData] = useState<any[]>([]);
   const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('http://localhost:8020/auth/user', {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Authentication failed");
+        }
+
+        const userData = await response.json();
+        setUser(userData);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError("Failed to authenticate user");
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   // Fetch all available courses
   useEffect(() => {
     const fetchCourses = async () => {
+      if (!user?.id) return; // Wait for user data to be available
+      
       setCoursesLoading(true);
       try {
-        const response = await fetch(API_CONFIG.FACULTY.COURSES.ALL);
+        const response = await fetch(`http://localhost:8020/faculty/${user.id}/courses`, {
+          credentials: "include"
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch courses');
@@ -1023,18 +1058,20 @@ const Grades = () => {
     };
 
     fetchCourses();
-  }, []);
+  }, [user?.id, selectedCourse]);
 
   // Fetch student data for the selected course
   useEffect(() => {
     const fetchStudentsData = async () => {
-      if (!selectedCourse) return;
+      if (!selectedCourse || !user?.id) return;
       
       setLoading(true);
       setError(null);
       
       try {
-        const response = await fetch(`${API_CONFIG.FACULTY.COURSES.COURSE_DATA}/${selectedCourse}/data`);
+        const response = await fetch(`http://localhost:8020/faculty/${user.id}/courses/${selectedCourse}/data`, {
+          credentials: "include"
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch student data');
@@ -1053,7 +1090,7 @@ const Grades = () => {
     if (selectedCourse) {
       fetchStudentsData();
     }
-  }, [selectedCourse]);
+  }, [selectedCourse, user?.id]);
 
   // Filter students based on search term
   const filteredStudents = studentsData.filter(student => 
@@ -1584,7 +1621,7 @@ const FacultyDashboard: React.FC = () => {
       case "grades":
         return <Grades />
       case "course-management":
-        return <FacultyCourseManagement />
+        return user ? <FacultyCourseManagement user={user} /> : null
       case "resources":
         return <ResourceManagement />
       default:

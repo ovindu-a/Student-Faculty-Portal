@@ -64,7 +64,18 @@ interface CourseData {
   students_data: StudentWithData[];
 }
 
-const FacultyCourseManagement: React.FC = () => {
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface FacultyCourseManagementProps {
+  user: User;
+}
+
+const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedCourseData, setSelectedCourseData] = useState<CourseData | null>(null);
@@ -86,7 +97,7 @@ const FacultyCourseManagement: React.FC = () => {
       setError(null);
 
       try {
-        const response = await axios.get<Course[]>('http://localhost:8020/courses');
+        const response = await axios.get<Course[]>(`http://localhost:8020/faculty/${user.id}/courses`);
         const allCourses = response.data;
         
         // Fetch student data for each course to determine if it has enrolled students
@@ -130,7 +141,7 @@ const FacultyCourseManagement: React.FC = () => {
     };
 
     fetchCourses();
-  }, []);
+  }, [user.id]); // Only re-run if user ID changes
 
   // Fetch course data when selected course changes
   useEffect(() => {

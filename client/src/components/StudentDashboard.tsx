@@ -33,6 +33,7 @@ import { Badge } from "./ui/badge"
 import { CardFooter } from "./ui/card"
 import { CardDescription } from "./ui/card"
 import { generateAcademicPerformanceReport } from "../lib/pdf-generator"
+import ChatBot from "./ChatBot"
 
 // Simple Select Component
 const Select = ({
@@ -1331,6 +1332,7 @@ const StudentDashboard: React.FC = () => {
           {renderActiveSection()}
         </div>
       </div>
+      <ChatBot portalType="student" userName={user?.name} />
     </div>
   )
 }

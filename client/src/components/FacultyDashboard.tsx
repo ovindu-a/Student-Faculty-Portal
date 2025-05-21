@@ -26,6 +26,7 @@ import Scheduler from "./Scheduler"
 import ResourceManagement from "./ResourceManagement"
 import FacultyCourseManagement from "./FacultyCourseManagement"
 import API_CONFIG from "../lib/config"
+import ChatBot from './ChatBot'
 
 // Simple Select Component
 const Select = ({
@@ -1706,6 +1707,14 @@ const FacultyDashboard: React.FC = () => {
           {renderActiveSection()}
         </div>
       </div>
+
+      {/* Add ChatBot component */}
+      {user && (
+        <ChatBot 
+          portalType="faculty" 
+          userName={user.name}
+        />
+      )}
     </div>
   )
 }

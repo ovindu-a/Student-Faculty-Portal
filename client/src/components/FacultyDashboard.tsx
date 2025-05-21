@@ -1647,8 +1647,7 @@ const FacultyDashboard: React.FC = () => {
           </nav>
 
           {/* User info and logout - desktop */}
-          <div className="hidden md:block absolute bottom-0 w-full border-t border-[#1a2644] p-4">
-            <div className="flex items-center mb-3">
+            <div className="flex px-4 items-center mb-3">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
                 {user?.email?.charAt(0).toUpperCase() || "F"}
               </div>
@@ -1659,34 +1658,12 @@ const FacultyDashboard: React.FC = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="w-half flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
+              className="w-full px-6 flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </button>
           </div>
-
-          {/* Mobile user info and logout */}
-          <div className="md:hidden border-t border-[#1a2644] p-4 mt-4">
-            <div className="flex items-center mb-3">
-              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">
-                {user?.email?.charAt(0).toUpperCase() || "F"}
-              </div>
-              <div className="flex flex-col">
-                <span className="font-semibold text-sm">{user?.name || "Faculty User"}</span>
-                <span className="text-xs text-gray-400">{user?.email}</span>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </button>
-          </div>
-        </div>
-
         {/* Main content area */}
         <div className="flex-1 overflow-auto w-full h-full bg-gray-900 p-4">
           {renderActiveSection()}

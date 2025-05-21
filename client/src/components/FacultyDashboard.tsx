@@ -1164,7 +1164,6 @@ const Grades = () => {
                   onClick={() => setSelectedCourse(course.id)}
                 >
                   <span className="font-medium text-white truncate">{course.name}</span>
-                  <span className="text-xs text-gray-400 truncate">{course.id.substring(0, 8)}...</span>
                 </button>
               ))}
             </div>
@@ -1380,7 +1379,6 @@ const Grades = () => {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-700">
                     <tr className="border-b border-gray-700">
-                      <th className="text-left py-3 px-4 font-medium text-white">ID</th>
                       <th className="text-left py-3 px-4 font-medium text-white">Name</th>
                       <th className="text-left py-3 px-4 font-medium text-white">Email</th>
                       <th className="text-center py-3 px-4 font-medium text-white">Hours</th>
@@ -1394,7 +1392,6 @@ const Grades = () => {
                     {filteredStudents.length > 0 ? (
                       filteredStudents.map((student) => (
                         <tr key={student.enrollment_id} className="border-b border-gray-700 hover:bg-gray-700">
-                          <td className="py-3 px-4 text-white">{student.student_info.id.substring(0, 8)}...</td>
                           <td className="py-3 px-4 text-white">
                             {student.student_info.first_name} {student.student_info.last_name || ''}
                           </td>
@@ -1662,7 +1659,7 @@ const FacultyDashboard: React.FC = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
+              className="w-half flex items-center px-3 py-2 text-red-400 hover:bg-[#1a2644] rounded-md"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout

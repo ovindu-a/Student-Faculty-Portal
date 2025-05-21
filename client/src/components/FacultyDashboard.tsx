@@ -1008,7 +1008,7 @@ const Grades = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('http://localhost:8020/auth/user', {
+        const response = await fetch('http://localhost:8100/user', {
           credentials: "include",
         });
 
@@ -1069,7 +1069,7 @@ const Grades = () => {
       setError(null);
       
       try {
-        const response = await fetch(`http://localhost:8020/faculty/${user.id}/courses/${selectedCourse}/data`, {
+        const response = await fetch(`${API_CONFIG.FACULTY.COURSES.COURSE_DATA}/${selectedCourse}/data`, {
           credentials: "include"
         });
         

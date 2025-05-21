@@ -24,7 +24,7 @@ import {
   Camera,
   FileDown,
 } from "lucide-react"
-import Scheduler from "./Scheduler"
+import Scheduler from "./SchedulerStudent"
 import ResourceManagement from "./ResourceManagementStudent"
 import StudentCourseManagement from "./StudentCourseManagement"
 import API_CONFIG from "../lib/config"
@@ -882,28 +882,28 @@ const AcademicPerformance = () => {
 
   // Function to get grade letter
   const getGradeLetter = (score: number): string => {
-    if (score >= 90) return "A";
-    if (score >= 80) return "B";
-    if (score >= 70) return "C";
-    if (score >= 60) return "D";
+    if (score >= 75) return "A";
+    if (score >= 65) return "B";
+    if (score >= 55) return "C";
+    if (score >= 45) return "D";
     return "F";
   };
   
   // Function to get grade color
   const getGradeColor = (score: number): string => {
-    if (score >= 90) return "text-green-400";
-    if (score >= 80) return "text-blue-400";
-    if (score >= 70) return "text-yellow-400";
-    if (score >= 60) return "text-orange-400";
+    if (score >= 75) return "text-green-400";
+    if (score >= 65) return "text-blue-400";
+    if (score >= 55) return "text-yellow-400";
+    if (score >= 45) return "text-orange-400";
     return "text-red-400";
   };
 
   // Function to get background color class based on score
   const getBgColor = (score: number): string => {
-    if (score >= 90) return "bg-green-500";
-    if (score >= 80) return "bg-blue-500";
-    if (score >= 70) return "bg-yellow-500";
-    if (score >= 60) return "bg-orange-500";
+    if (score >= 75) return "bg-green-500";
+    if (score >= 65) return "bg-blue-500";
+    if (score >= 55) return "bg-yellow-500";
+    if (score >= 45) return "bg-orange-500";
     return "bg-red-500";
   };
 
@@ -971,7 +971,7 @@ const AcademicPerformance = () => {
           </div>
           <Button
             variant="outline"
-            className="border-blue-600 text-blue-400 hover:bg-blue-900/20 flex items-center gap-2"
+            className="border-blue-600 hover:text-blue-400 bg-blue-900/20 text-white hover:bg-white flex items-center gap-2"
             onClick={handleGeneratePdf}
             disabled={isGeneratingPdf || loading || !!error}
           >
@@ -1066,7 +1066,7 @@ const AcademicPerformance = () => {
                 <CardFooter className="border-t border-gray-700 pt-4">
                   <Button 
                     variant="outline"
-                    className="w-full border-gray-700 hover:bg-gray-700 text-gray-300"
+                    className="w-full border-gray-700 bg-gray-900 hover:bg-gray-700 hover:text-white text-gray-300"
                     onClick={() => {
                       setSelectedCourse(course.course_name);
                       setActiveTab("recommendations");

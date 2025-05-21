@@ -282,7 +282,7 @@ const StudentCourseManagement = () => {
           </div>
           <Button
             variant="outline"
-            className="border-blue-600 text-blue-400 hover:bg-blue-900/20 flex items-center gap-2"
+            className="border-blue-600 hover:text-blue-400 bg-blue-900/20 text-white hover:bg-white flex items-center gap-2"
             onClick={handleGenerateReport}
             disabled={isGeneratingPdf || !userProfile}
           >
@@ -393,7 +393,7 @@ const StudentCourseManagement = () => {
                     <CardFooter className="border-t border-gray-700 pt-4">
                       <Button 
                         variant="outline"
-                        className="w-full border-gray-700 hover:bg-gray-700 text-gray-300"
+                        className="w-full bg-gray-900 border-gray-700 hover:bg-gray-700 text-gray-500 hover:text-white"
                       >
                         View Course Details
                       </Button>

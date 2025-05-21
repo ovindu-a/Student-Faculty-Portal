@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
+import API_CONFIG from '../lib/config';
 
 interface Message {
   text: string;
@@ -27,7 +28,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const response = await fetch('http://localhost:8100/user', {
+        const response = await fetch(API_CONFIG.AUTH.USER, {
           credentials: 'include'
         });
         if (response.ok) {
@@ -95,8 +96,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
 
       // Determine the endpoint based on portal type
       const endpoint = portalType === 'student' 
-        ? 'http://localhost:8020/chatbot/chat'
-        : 'http://localhost:8020/chatbot/lecturer/chat';
+        ? 'https://student.campus-management.ovindu.com/chatbot/chat'
+        : 'https://student.campus-management.ovindu.com/chatbot/lecturer/chat';
 
       // Send to backend with the correct format
       const response = await fetch(endpoint, {

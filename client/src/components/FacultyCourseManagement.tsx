@@ -97,7 +97,7 @@ const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user 
       setError(null);
 
       try {
-        const response = await axios.get<Course[]>(`http://localhost:8020/faculty/${user.id}/courses`);
+        const response = await axios.get<Course[]>(`https://student.campus-management.ovindu.com/faculty/${user.id}/courses`);
         const allCourses = response.data;
         
         // Fetch student data for each course to determine if it has enrolled students
@@ -105,7 +105,7 @@ const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user 
           allCourses.map(async (course) => {
             try {
               const dataResponse = await axios.get<CourseData>(
-                `http://localhost:8020/courses/${course.id}/data`
+                `https://student.campus-management.ovindu.com/courses/${course.id}/data`
               );
               return {
                 course,
@@ -152,7 +152,7 @@ const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user 
       setError(null);
 
       try {
-        const response = await axios.get<CourseData>(`http://localhost:8020/courses/${selectedCourse.id}/data`);
+        const response = await axios.get<CourseData>(`https://student.campus-management.ovindu.com/courses/${selectedCourse.id}/data`);
         setSelectedCourseData(response.data);
       } catch (err) {
         console.error('Error fetching course data:', err);
@@ -180,7 +180,7 @@ const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user 
     setError(null);
 
     try {
-      const response = await axios.get<Student[]>(`http://localhost:8020/courses/${selectedCourse.id}/unregistered-students`);
+      const response = await axios.get<Student[]>(`https://student.campus-management.ovindu.com/courses/${selectedCourse.id}/unregistered-students`);
       setUnregisteredStudents(response.data);
     } catch (err) {
       console.error('Error fetching unregistered students:', err);
@@ -199,13 +199,13 @@ const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user 
     setError(null);
 
     try {
-      await axios.post(`http://localhost:8020/courses/${selectedCourse.id}/enroll/${studentId}`);
+      await axios.post(`https://student.campus-management.ovindu.com/courses/${selectedCourse.id}/enroll/${studentId}`);
       
       // Remove the student from unregistered list
       setUnregisteredStudents(prev => prev.filter(s => s.id !== studentId));
       
       // Refresh course data to include the new student
-      const response = await axios.get<CourseData>(`http://localhost:8020/courses/${selectedCourse.id}/data`);
+      const response = await axios.get<CourseData>(`https://student.campus-management.ovindu.com/courses/${selectedCourse.id}/data`);
       setSelectedCourseData(response.data);
     } catch (err) {
       console.error('Error enrolling student:', err);
@@ -224,10 +224,10 @@ const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user 
     setError(null);
 
     try {
-      await axios.delete(`http://localhost:8020/courses/${selectedCourse.id}/unenroll/${studentId}`);
+      await axios.delete(`https://student.campus-management.ovindu.com/courses/${selectedCourse.id}/unenroll/${studentId}`);
       
       // Refresh course data to reflect the change
-      const response = await axios.get<CourseData>(`http://localhost:8020/courses/${selectedCourse.id}/data`);
+      const response = await axios.get<CourseData>(`https://student.campus-management.ovindu.com/courses/${selectedCourse.id}/data`);
       setSelectedCourseData(response.data);
       
       // If this was the last student in the course, remove the course from the list
@@ -409,7 +409,7 @@ const FacultyCourseManagement: React.FC<FacultyCourseManagementProps> = ({ user 
                       size="sm"
                       onClick={() => {
                         setIsLoadingCourseData(true);
-                        axios.get<CourseData>(`http://localhost:8020/courses/${selectedCourse.id}/data`)
+                        axios.get<CourseData>(`https://student.campus-management.ovindu.com/courses/${selectedCourse.id}/data`)
                           .then(res => setSelectedCourseData(res.data))
                           .catch(err => console.error('Error refreshing course data:', err))
                           .finally(() => setIsLoadingCourseData(false));

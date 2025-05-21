@@ -126,7 +126,7 @@ const Scheduler = () => {
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const response = await fetch('http://localhost:8100/user', {
+        const response = await fetch(API_CONFIG.AUTH.USER, {
           credentials: 'include'
         });
         if (response.ok) {
@@ -149,7 +149,7 @@ const Scheduler = () => {
       
       setIsLoadingCourses(true);
       try {
-        const response = await axios.get<Course[]>(`http://localhost:8020/faculty/${userId}/courses`);
+        const response = await axios.get<Course[]>(`https://student.campus-management.ovindu.com/faculty/${userId}/courses`);
         setCourses(response.data);
         
         // Set first course as selected by default
@@ -178,7 +178,7 @@ const Scheduler = () => {
       try {
         // Fetch assignments for the selected course
         const assignmentsResponse = await axios.get<AssignmentResponse[]>(
-          `http://localhost:8020/api/assignments/${selectedCourse}`
+          `https://student.campus-management.ovindu.com/api/assignments/${selectedCourse}`
         );
         
         // Convert API response to ScheduledItem format
@@ -198,7 +198,7 @@ const Scheduler = () => {
         
         // Fetch exams for the selected course
         const examsResponse = await axios.get<ExamResponse[]>(
-          `http://localhost:8020/api/exams/${selectedCourse}`
+          `https://student.campus-management.ovindu.com/api/exams/${selectedCourse}`
         );
         
         // Convert API response to ScheduledItem format

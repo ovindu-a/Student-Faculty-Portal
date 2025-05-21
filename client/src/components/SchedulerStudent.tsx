@@ -59,7 +59,7 @@ const Scheduler = () => {
       
       try {
         // 1. Fetch all courses
-        const coursesResponse = await axios.get<Course[]>('http://localhost:8020/courses');
+        const coursesResponse = await axios.get<Course[]>('https://student.campus-management.ovindu.com/courses');
         const allCourses = coursesResponse.data;
         setCourses(allCourses);
         
@@ -68,13 +68,13 @@ const Scheduler = () => {
           try {
             // Fetch assignments for this course
             const assignmentsResponse = await axios.get<Assignment[]>(
-              `http://localhost:8020/api/assignments/${course.id}`
+              `https://student.campus-management.ovindu.com/api/assignments/${course.id}`
             );
             const assignments = Array.isArray(assignmentsResponse.data) ? assignmentsResponse.data : [];
             
             // Fetch exams for this course
             const examsResponse = await axios.get<Exam[]>(
-              `http://localhost:8020/api/exams/${course.id}`
+              `https://student.campus-management.ovindu.com/api/exams/${course.id}`
             );
             const exams = Array.isArray(examsResponse.data) ? examsResponse.data : [];
             

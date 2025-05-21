@@ -1009,7 +1009,7 @@ const Grades = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch('http://localhost:8100/user', {
+        const response = await fetch(API_CONFIG.AUTH.USER, {
           credentials: "include",
         });
 
@@ -1035,7 +1035,7 @@ const Grades = () => {
       
       setCoursesLoading(true);
       try {
-        const response = await fetch(`http://localhost:8020/faculty/${user.id}/courses`, {
+        const response = await fetch(`https://student.campus-management.ovindu.com/faculty/${user.id}/courses`, {
           credentials: "include"
         });
         

@@ -19,8 +19,28 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch user ID on component mount
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const response = await fetch('http://localhost:8100/user', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          setUserId(userData.id);
+        }
+      } catch (error) {
+        console.error('Error fetching user ID:', error);
+      }
+    };
+
+    fetchUserId();
+  }, []);
 
   // Initial welcome message
   useEffect(() => {
@@ -53,7 +73,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
   };
 
   const sendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !userId) return;
     
     const userMessage: Message = {
       text: inputValue,
@@ -69,26 +89,25 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
     try {
       // Format messages for the backend
       const messageHistory = messages.map(msg => ({
-        role: msg.role || (msg.isUser ? 'user' : 'assistant'),
-        content: msg.text
+        content: msg.text,
+        role: msg.role || (msg.isUser ? 'user' : 'assistant')
       }));
 
-      // Add current message
-      messageHistory.push({
-        role: 'user',
-        content: userMessage.text
-      });
+      // Determine the endpoint based on portal type
+      const endpoint = portalType === 'student' 
+        ? 'http://localhost:8020/chatbot/chat'
+        : 'http://localhost:8020/chatbot/lecturer/chat';
 
-      // Send to backend
-      const response = await fetch('http://localhost:8100/chat', {
+      // Send to backend with the correct format
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           past_messages: messageHistory,
-          portal_type: portalType,
-          user_name: userName
+          user_message: userMessage.text,
+          user_id: userId
         }),
         credentials: 'include'
       });
@@ -101,7 +120,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ portalType, userName }) => {
       
       // Add bot response to messages
       setMessages(prev => [...prev, {
-        text: data.response,
+        text: data.response || data.message || "I'm not sure how to respond to that.",
         isUser: false,
         timestamp: new Date(),
         role: 'assistant'

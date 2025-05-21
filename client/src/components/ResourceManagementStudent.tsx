@@ -1346,12 +1346,6 @@ const ResourceManagement = () => {
           <TabsTrigger value="booked" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
             Booked Resources
           </TabsTrigger>
-          <TabsTrigger value="management" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
-            Resource Management
-          </TabsTrigger>
-          <TabsTrigger value="maintenance" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
-            Maintenance Dashboard
-          </TabsTrigger>
         </TabsList>
 
         {/* Available */}

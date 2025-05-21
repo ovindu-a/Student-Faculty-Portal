@@ -3,9 +3,21 @@ import type { ChangeEvent } from 'react';
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Calendar, Clock, FileText, MapPin, User } from "lucide-react";
+import { 
+  Calendar, 
+  Clock, 
+  FileText, 
+  MapPin, 
+  User, 
+  Loader2,
+  CalendarDays,
+  BookOpen,
+  AlertCircle,
+  CheckCircle,
+  Info
+} from "lucide-react";
 import axios from 'axios';
 import API_CONFIG from '../lib/config';
 
@@ -67,6 +79,11 @@ interface ScheduledItem {
   description?: string;
 }
 
+interface Course {
+  id: string;
+  name: string;
+}
+
 const Scheduler = () => {
   // Form states
   const [examForm, setExamForm] = useState<ExamForm>({
@@ -99,15 +116,70 @@ const Scheduler = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load data from API
+  // Add new states for courses
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch user ID first
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const response = await fetch('http://localhost:8100/user', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          setUserId(userData.id);
+        }
+      } catch (error) {
+        console.error('Error fetching user ID:', error);
+        setError('Failed to authenticate user.');
+      }
+    };
+
+    fetchUserId();
+  }, []);
+
+  // Fetch faculty courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!userId) return;
+      
+      setIsLoadingCourses(true);
+      try {
+        const response = await axios.get<Course[]>(`http://localhost:8020/faculty/${userId}/courses`);
+        setCourses(response.data);
+        
+        // Set first course as selected by default
+        if (response.data.length > 0) {
+          setSelectedCourse(response.data[0].id);
+        }
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+        setError('Failed to load courses.');
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    fetchCourses();
+  }, [userId]);
+
+  // Load assignments and exams for selected course
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedCourse) return;
+      
       setIsLoadingData(true);
       setError(null);
       
       try {
-        // Fetch assignments
-        const assignmentsResponse = await axios.get<AssignmentResponse[]>(API_CONFIG.SCHEDULE.ALL_ASSIGNMENTS);
+        // Fetch assignments for the selected course
+        const assignmentsResponse = await axios.get<AssignmentResponse[]>(
+          `http://localhost:8020/api/assignments/${selectedCourse}`
+        );
         
         // Convert API response to ScheduledItem format
         const formattedAssignments: ScheduledItem[] = assignmentsResponse.data.map(assignment => {
@@ -124,8 +196,10 @@ const Scheduler = () => {
         
         setScheduledAssignments(formattedAssignments);
         
-        // Fetch exams
-        const examsResponse = await axios.get<ExamResponse[]>(API_CONFIG.SCHEDULE.ALL_EXAMS);
+        // Fetch exams for the selected course
+        const examsResponse = await axios.get<ExamResponse[]>(
+          `http://localhost:8020/api/exams/${selectedCourse}`
+        );
         
         // Convert API response to ScheduledItem format
         const formattedExams: ScheduledItem[] = examsResponse.data.map(exam => {
@@ -142,69 +216,17 @@ const Scheduler = () => {
         
         setScheduledExams(formattedExams);
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching schedule data:', err);
         setError('Failed to load schedule data. Please try again later.');
-        
-        // Fallback to mock data if API fails
-        // Mock assignments data
-        const mockAssignments = [
-          { 
-            id: 1, 
-            title: "Database Design Project", 
-            course_code: "CS301", 
-            date: "2025-06-15", 
-            time: "11:59 PM", 
-            description: "Create an ER diagram and implement the database schema" 
-          },
-          { 
-            id: 2, 
-            title: "Python Programming Assignment", 
-            course_code: "CS102", 
-            date: "2025-06-10", 
-            time: "11:59 PM", 
-            description: "Implement a basic machine learning algorithm" 
-          },
-          { 
-            id: 3, 
-            title: "Research Paper Review", 
-            course_code: "CS401", 
-            date: "2025-06-20", 
-            time: "11:59 PM", 
-            description: "Review and summarize the assigned research paper" 
-          }
-        ];
-        
-        // Mock exams data
-        const mockExams = [
-          { 
-            id: 1, 
-            title: "Midterm Exam", 
-            course_code: "CS301", 
-            date: "2025-06-25", 
-            time: "10:00 AM - 12:00 PM", 
-            location: "Room 203", 
-            description: "Covers chapters 1-5" 
-          },
-          { 
-            id: 2, 
-            title: "Final Exam", 
-            course_code: "CS102", 
-            date: "2025-07-15", 
-            time: "1:00 PM - 3:00 PM", 
-            location: "Main Hall", 
-            description: "Comprehensive exam" 
-          }
-        ];
-        
-        setScheduledAssignments(mockAssignments);
-        setScheduledExams(mockExams);
+        setScheduledAssignments([]);
+        setScheduledExams([]);
       } finally {
         setIsLoadingData(false);
       }
     };
     
     fetchData();
-  }, []);
+  }, [selectedCourse]);
 
   const handleExamChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -353,28 +375,106 @@ const Scheduler = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-white tracking-tight">Class Schedule</h1>
-        <p className="text-gray-200">Manage assignments and exams for your courses</p>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-blue-400" />
+            Class Schedule
+          </h1>
+          <p className="text-gray-400 mt-1">Manage your course assignments and exams</p>
+        </div>
+        
+        {/* Quick Stats */}
+        <div className="flex gap-4">
+          <div className="bg-gray-900/50 rounded-lg px-4 py-2 border border-gray-700">
+            <div className="text-sm text-gray-400">Total Assignments</div>
+            <div className="text-xl font-bold text-white">{scheduledAssignments.length}</div>
+          </div>
+          <div className="bg-gray-900/50 rounded-lg px-4 py-2 border border-gray-700">
+            <div className="text-sm text-gray-400">Total Exams</div>
+            <div className="text-xl font-bold text-white">{scheduledExams.length}</div>
+          </div>
+        </div>
       </div>
 
-      <Tabs defaultValue="assignments" className="flex-1">
-        <TabsList className="bg-gray-800 border-b border-gray-700">
-          <TabsTrigger value="assignments" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+      {/* Course Selection with improved UI */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-blue-400" />
+            <CardTitle className="text-white">Select Course</CardTitle>
+          </div>
+          <CardDescription>Choose a course to view and manage its schedule</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingCourses ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+            </div>
+          ) : courses.length === 0 ? (
+            <div className="flex items-center justify-center gap-2 text-gray-400 py-4 bg-gray-900/50 rounded-lg border border-gray-700">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              <span>No courses available</span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {courses.map(course => (
+                <Button
+                  key={course.id}
+                  variant={selectedCourse === course.id ? "default" : "outline"}
+                  onClick={() => setSelectedCourse(course.id)}
+                  className={`flex items-center gap-2 px-4 py-2 ${
+                    selectedCourse === course.id 
+                      ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                      : "bg-gray-900/50 hover:bg-gray-700 text-gray-300 border-gray-600"
+                  }`}
+                >
+                  {selectedCourse === course.id && (
+                    <CheckCircle className="h-4 w-4" />
+                  )}
+                  {course.name}
+                </Button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="assignments" className="w-full">
+        <TabsList className="bg-gray-800 border-b border-gray-700 w-full justify-start">
+          <TabsTrigger 
+            value="assignments" 
+            className="data-[state=active]:bg-gray-900 data-[state=active]:text-white flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
             Assignments
           </TabsTrigger>
-          <TabsTrigger value="exams" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+          <TabsTrigger 
+            value="exams" 
+            className="data-[state=active]:bg-gray-900 data-[state=active]:text-white flex items-center gap-2"
+          >
+            <BookOpen className="h-4 w-4" />
             Exams
           </TabsTrigger>
         </TabsList>
 
-        {/* Assignments Tab */}
-        <TabsContent value="assignments" className="flex-1 mt-6">
+        {/* Assignments Tab Content */}
+        <TabsContent value="assignments" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-800 text-white border-none">
-              <CardHeader className="bg-gray-800 pb-3 pt-5">
-                <CardTitle>Schedule Assignment</CardTitle>
+            {/* Assignment Form Card */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-400" />
+                    <CardTitle className="text-white">Schedule Assignment</CardTitle>
+                  </div>
+                  {isLoading && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
+                </div>
+                <CardDescription>Create a new assignment for your course</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={submitAssignmentForm} className="space-y-4">
@@ -475,6 +575,20 @@ const Scheduler = () => {
                     </label>
                   </div>
                   
+                  <div className="bg-blue-900/20 border border-blue-900/50 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-400 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-300 mb-1">Assignment Guidelines</h4>
+                        <ul className="text-sm text-blue-200/70 list-disc list-inside space-y-1">
+                          <li>Provide clear and specific title</li>
+                          <li>Set reasonable deadlines</li>
+                          <li>Include detailed description</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Button 
                     type="submit" 
                     disabled={isLoading}
@@ -485,46 +599,75 @@ const Scheduler = () => {
                 </form>
               </CardContent>
             </Card>
-            
-            <Card className="bg-gray-800 text-white border-none">
-              <CardHeader className="bg-gray-800 pb-3 pt-5">
-                <CardTitle>Scheduled Assignments</CardTitle>
+
+            {/* Scheduled Assignments Card */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-blue-400" />
+                    <CardTitle className="text-white">Scheduled Assignments</CardTitle>
+                  </div>
+                  <span className="text-sm bg-blue-900/30 text-blue-300 px-2 py-1 rounded">
+                    {scheduledAssignments.length} Total
+                  </span>
+                </div>
+                <CardDescription>View all scheduled assignments</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 {isLoadingData ? (
-                  <div className="p-4 text-center text-gray-500">
-                    Loading assignments...
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
                   </div>
                 ) : error ? (
-                  <div className="p-4 text-center text-red-500">
-                    {error}
+                  <div className="p-6 text-center">
+                    <div className="inline-flex items-center gap-2 bg-gray-900/50 px-4 py-2 rounded-lg border border-gray-700">
+                      <Info className="h-5 w-5 text-gray-400" />
+                      <div className="text-gray-400">No assignments created yet</div>
+                    </div>
+                    <div className="text-sm text-gray-500 mt-2">
+                      Use the form to schedule new assignments
+                    </div>
                   </div>
                 ) : scheduledAssignments.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
-                    No assignments scheduled yet
+                  <div className="p-6 text-center">
+                    <div className="inline-flex items-center gap-2 bg-gray-900/50 px-4 py-2 rounded-lg border border-gray-700">
+                      <Calendar className="h-5 w-5 text-gray-400" />
+                      <div className="text-gray-400">No assignments scheduled</div>
+                    </div>
+                    <div className="text-sm text-gray-500 mt-2">
+                      Use the form to schedule new assignments
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="divide-y divide-gray-700">
                     {scheduledAssignments.map((assignment) => (
-                      <div key={assignment.id} className="border-b border-gray-800 p-4 hover:bg-gray-800">
-                        <div className="flex justify-between mb-1">
+                      <div 
+                        key={assignment.id} 
+                        className="p-4 hover:bg-gray-700/50 transition-colors"
+                      >
+                        <div className="flex justify-between items-start mb-2">
                           <h3 className="font-medium text-white">{assignment.title}</h3>
-                          <span className="text-sm font-medium bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded">
+                          <span className="text-sm font-medium bg-blue-900/30 text-blue-300 px-2 py-0.5 rounded">
                             {assignment.course_code}
                           </span>
                         </div>
-                        <div className="flex items-center text-sm text-gray-400 mb-2">
-                          <Calendar className="h-3.5 w-3.5 mr-1" />
-                          <span>{formatDate(assignment.date)}</span>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            <span>{formatDate(assignment.date)}</span>
+                          </div>
                           {assignment.time && (
-                            <>
-                              <Clock className="h-3.5 w-3.5 ml-3 mr-1" />
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4 text-gray-500" />
                               <span>{assignment.time}</span>
-                            </>
+                            </div>
                           )}
                         </div>
                         {assignment.description && (
-                          <p className="text-sm text-gray-300 mt-2">{assignment.description}</p>
+                          <div className="mt-2 text-sm text-gray-300 bg-gray-900/30 p-2 rounded">
+                            {assignment.description}
+                          </div>
                         )}
                       </div>
                     ))}
@@ -535,12 +678,20 @@ const Scheduler = () => {
           </div>
         </TabsContent>
 
-        {/* Exams Tab */}
-        <TabsContent value="exams" className="flex-1 mt-6">
+        {/* Exams Tab Content - Similar improvements */}
+        <TabsContent value="exams" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-800 text-white border-none">
-              <CardHeader className="bg-gray-800 pb-3 pt-5">
-                <CardTitle>Schedule Exam</CardTitle>
+            {/* Exam Form Card */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-blue-400" />
+                    <CardTitle className="text-white">Schedule Exam</CardTitle>
+                  </div>
+                  {isLoading && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
+                </div>
+                <CardDescription>Create a new exam for your course</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={submitExamForm} className="space-y-4">
@@ -656,12 +807,30 @@ const Scheduler = () => {
                     </label>
                   </div>
                   
+                  <div className="bg-blue-900/20 border border-blue-900/50 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-400 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-300 mb-1">Exam Guidelines</h4>
+                        <ul className="text-sm text-blue-200/70 list-disc list-inside space-y-1">
+                          <li>Specify clear exam title and location</li>
+                          <li>Set appropriate duration</li>
+                          <li>Include important instructions</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <Button 
                     type="submit" 
                     disabled={isLoading}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
-                    {isLoading ? "Scheduling..." : "Schedule Exam"}
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Schedule Exam"
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -677,12 +846,18 @@ const Scheduler = () => {
                     Loading exams...
                   </div>
                 ) : error ? (
-                  <div className="p-4 text-center text-red-500">
-                    {error}
+                  <div className="p-4 text-center">
+                    <div className="text-gray-400 mb-2">No exams created yet</div>
+                    <div className="text-sm text-gray-500">
+                      Use the form on the left to schedule new exams
+                    </div>
                   </div>
                 ) : scheduledExams.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
-                    No exams scheduled yet
+                  <div className="p-4 text-center">
+                    <div className="text-gray-400 mb-2">No exams scheduled</div>
+                    <div className="text-sm text-gray-500">
+                      Use the form on the left to schedule new exams
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-1">
